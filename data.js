@@ -110,16 +110,36 @@ const API = (() => {
     const big = q === 'high';
     if (k.startsWith('l:')) return `https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpc/${k.slice(2)}_R_JP${big ? '_LG' : ''}.png`;
     if (k.startsWith('s:')) return `https://images.scrydex.com/pokemon/${k.slice(2)}/${big ? 'large' : 'medium'}`;
+    // TCGplayer: immagine del prodotto (codice prodotto da TCGdex), sempre la carta giusta
+    if (k.startsWith('t:')) return `https://tcgplayer-cdn.tcgplayer.com/product/${k.slice(2)}_in_${big ? '1000x1000' : '400x400'}.jpg`;
     return '';
   }
-  const withImg = (lang, c) => { if (c && !c.image) { const e = extImage(lang, c.id); if (e) c.image = e; } return c; };
+  // codice prodotto TCGplayer della carta (da TCGdex)
+  function tcgProductId(c) {
+    if (!c) return null;
+    for (const vd of c.variants_detailed || []) if (vd.thirdParty && vd.thirdParty.tcgplayer) return vd.thirdParty.tcgplayer;
+    const tp = c.pricing && c.pricing.tcgplayer;
+    if (tp) for (const k in tp) if (tp[k] && tp[k].productId) return tp[k].productId;
+    return null;
+  }
+  // carta senza immagine TCGdex: prima le scansioni giapponesi (Limitless), poi TCGplayer, poi Scrydex
+  // (Scrydex per alcune carte, es. Classic Collection del 30°, mostra solo il retro)
+  const withImg = (lang, c) => {
+    if (c && !c.image) {
+      const e = extImage(lang, c.id), pid = tcgProductId(c);
+      c.image = e && e.startsWith('ext:l:') ? e : pid ? 'ext:t:' + pid : e || c.image;
+    }
+    return c;
+  };
 
   async function decorate(lang, url) {
     const [cards, sets] = await Promise.all([json(url), setsMap(lang)]);
     return (cards || []).filter(c => !isPocket(setIdOf(c))).map(c => {
       const setId = setIdOf(c);
       const s = sets.get(setId);
-      return { ...c, image: c.image || extImage(lang, c.id), lang, setId, setName: s ? s.name : setId, official: s && s.cardCount ? s.cardCount.official : null, order: s ? s.order : -1 };
+      // (Scrydex no: senza dettagli della carta non si sa se c'è l'immagine TCGplayer, la cerca il ripiego)
+      const e = extImage(lang, c.id);
+      return { ...c, image: c.image || (e && !e.startsWith('ext:s:') ? e : null), lang, setId, setName: s ? s.name : setId, official: s && s.cardCount ? s.cardCount.official : null, order: s ? s.order : -1 };
     });
   }
   // Tutte le carte di un Pokémon (numero del Pokédex) in una lingua, qualunque sia il nome stampato
@@ -131,9 +151,13 @@ const API = (() => {
   // Immagine mancante nella lingua scelta: database locale, poi quella inglese (stesso id), poi nessuna.
   const serieCache = new Map();
   async function fallbackImage(lang, setId, localId) {
-    const own = extImage(lang, `${setId}-${localId}`);
+    const id = `${setId}-${localId}`;
+    const own = extImage(lang, id), enExt = extImage('en', id);
+    if (own && own.startsWith('ext:l:')) return own;
+    for (const l of [...new Set([lang, 'en'])]) {
+      try { const pid = tcgProductId(await getCard(l, id)); if (pid) return 'ext:t:' + pid; } catch { /* niente */ }
+    }
     if (own) return own;
-    const enExt = extImage('en', `${setId}-${localId}`);
     if (enExt) return enExt;
     for (const l of ['en', lang]) {
       const k = l + '|' + setId;

@@ -277,6 +277,8 @@ async function load() {
   const st = await DB.get('state');
   if (st) {
     S.editedAt = st.editedAt || 0;
+  // immagini Scrydex salvate (per alcune carte era solo il retro): si ricalcolano, con TCGplayer prima
+  S.items.forEach(i => { if (typeof i.image === 'string' && i.image.startsWith('ext:s:')) i.image = null; });
     Object.assign(S.settings, st.settings || {});
     S.items = st.items || [];
     S.portfolio = st.portfolio || [];
@@ -528,6 +530,14 @@ function hydrateImages(root) {
     if (base) { el.src = img(base); el.closest('.ph')?.classList.remove('ph'); }
   });
 }
+// le pagine che si completano dopo (master set, espansioni, schede) aggiungono carte senza immagine più tardi:
+// appena compaiono, cerca anche per loro l'immagine di ripiego (es. Classic Collection: Scrydex)
+let fbPending = false;
+new MutationObserver(() => {
+  if (fbPending || !document.querySelector('img[data-fb]')) return;
+  fbPending = true;
+  requestAnimationFrame(() => { fbPending = false; hydrateImages(document); });
+}).observe(document.body, { childList: true, subtree: true });
 // immagine di una carta posseduta: foto caricata, immagine diretta (Topsun) o TCGdex
 const hasImg = i => !!(i.photo || i.imgUrl || i.image || (i.db === 'cm' && CM.imageOf(i.cmId)));
 function itemImg(i, q = 'low') {
