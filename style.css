@@ -510,3 +510,12 @@ button.chip { cursor: pointer; }
 .tile-img.mset img { width: 100%; height: auto; object-fit: contain; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); }
 .tile-img.mset > b { text-align: center; font-size: 1.05rem; }
 .spinner.sm { width: 12px; height: 12px; border-width: 2px; vertical-align: -2px; display: inline-block; }
+
+/* accesso a Google Drive scaduto */
+.drivebar { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(22px + env(safe-area-inset-bottom)); z-index: 150;
+  display: flex; align-items: center; gap: 10px; width: min(560px, calc(100vw - 32px)); padding: 10px 12px;
+  background: var(--bg2); border: 1px solid var(--accent); border-radius: 14px; box-shadow: var(--shadow); font-size: 13px; }
+.drivebar > span { flex: 1; min-width: 0; }
+.drivebar .btn { flex: none; }
+.drivebar svg { color: var(--accent); flex: none; }
+@media (max-width: 760px) { .drivebar { bottom: calc(70px + env(safe-area-inset-bottom)); } }

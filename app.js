@@ -478,7 +478,17 @@ function driveBtnHtml() {
   const title = t('drive_st_' + st) + (DRIVE.lastSync() ? ` · ${t('drive_last')} ${new Date(DRIVE.lastSync()).toLocaleString(locale())}` : '');
   return `<button id="driveBtn" class="iconbtn drive ${cls}" data-act="drive-sync" title="${esc(title)}">${icon('cloud')}</button>`;
 }
+// Barra in basso quando l'accesso a Drive è scaduto: le modifiche fatte qui non arrivano agli altri dispositivi
+// finché non tocchi «Ricollega» (Google chiede il tocco per rinnovare l'accesso).
+function renderDriveBar() {
+  let bar = document.getElementById('driveBar');
+  const show = DRIVE.configured() && DRIVE.everSynced() && DRIVE.status.state === 'needLogin';
+  if (!show) { if (bar) bar.remove(); return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'driveBar'; bar.className = 'drivebar'; document.body.appendChild(bar); }
+  bar.innerHTML = `${icon('cloud')}<span>${t('drive_bar')}</span><button class="btn primary sm" data-act="drive-sync">${t('drive_relink')}</button>`;
+}
 function renderDriveState() {
+  renderDriveBar();
   const b = $('#driveBtn');
   if (b) b.outerHTML = driveBtnHtml();
   const p = $('#driveStatus');
@@ -2315,6 +2325,16 @@ if (EBAY.isExt) chrome.runtime.onMessage.addListener((msg, sender) => {
   // versione web su https (GitHub Pages): file dell'app disponibili anche offline
   if (!EBAY.isExt && location.protocol === 'https:' && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   if (DRIVE.connected() && DRIVE.everSynced()) await DRIVE.sync();
+  renderDriveBar();
+  // quando torni sull'app (es. riaperta sul telefono senza ricaricarla) prende subito le modifiche fatte altrove
+  let lastPull = Date.now();
+  const pullDrive = () => {
+    if (document.visibilityState !== 'visible' || !DRIVE.everSynced() || Date.now() - lastPull < 15000) return;
+    lastPull = Date.now();
+    if (DRIVE.connected()) DRIVE.sync(); else { DRIVE.status.state = 'needLogin'; renderDriveState(); }
+  };
+  document.addEventListener('visibilitychange', pullDrive);
+  window.addEventListener('focus', pullDrive);
   S.rates = await API.getRates().catch(() => S.rates);
   render();
   // prezzi: niente aggiornamenti automatici, solo con il pulsante «Scansiona prezzi»

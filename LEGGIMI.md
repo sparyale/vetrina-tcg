@@ -44,6 +44,9 @@ Con l'app in modalità test Google può chiedere di nuovo l'accesso ogni tanto: 
 1. Apri l'indirizzo GitHub Pages in **Safari** → **Condividi → Aggiungi a schermata Home**: si apre a tutto schermo come un'app.
 2. **Impostazioni** (rotella in alto) **→ Google Drive → Collega Google Drive** e accedi.
 3. Fai lo stesso sul PC: ogni modifica viene inviata a Drive dopo pochi secondi; all'apertura l'app scarica la copia più recente.
+   Anche quando torni sull'app (es. riaperta sul telefono senza ricaricarla) scarica subito le modifiche fatte altrove.
+4. L'accesso a Google dura circa un'ora: quando scade compare in basso la barra **«Accesso a Google Drive scaduto»**.
+   Finché non tocchi **Ricollega**, le modifiche restano solo su quel dispositivo; dopo il tocco partono subito per Drive.
    Se hai modificato su due dispositivi senza sincronizzare, l'app ti chiede quale copia tenere.
 
 ### Portare la collezione dall'estensione alla versione web
