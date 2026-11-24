@@ -389,6 +389,8 @@ button.chip { cursor: pointer; }
 .toast.out { opacity: 0; transform: translateY(8px); }
 
 .tabbar { display: none; }
+.searchver { margin: 0 0 12px; }
+@media (max-width: 760px) { .searchver { display: flex; } .searchver button { flex: 1; justify-content: center; } }
 /* foto dal web per il sigillato */
 .webpics-box { margin-top: 12px; display: grid; gap: 8px; }
 .webpics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }

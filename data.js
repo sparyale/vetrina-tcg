@@ -207,6 +207,8 @@ const API = (() => {
     if (finish && card && card.variants_detailed) {
       const vd = card.variants_detailed.find(x => finishOf(x) === finish);
       if (vd && vd.pricing) p = vd.pricing;
+      // carta timbrata senza prezzi suoi: su Cardmarket è catalogata come reverse holo della carta base
+      else if (/^stamp/.test(finish)) variant = 'reverse';
     }
     if (!p) return out;
     // TCGplayer (USD, mercato USA): solo come ultima stima quando mancano eBay e Cardmarket
@@ -261,7 +263,12 @@ const API = (() => {
     return { set, cards };
   }
 
-  return { isPocket, extImage, extUrl, getSets, setsMap, searchCards, searchDex, getCard, getSet, getSetFull, fallbackImage, pricing, slotsForCard, getRates, setIdOf, norm };
+  // versioni reverse holo e timbrate di una carta (ricerca «Reverse holo e timbrate»)
+  function revSlots(card) {
+    return slotsForCard(card, true).filter(s => s.variant === 'reverse' || /^stamp/.test(s.finish || ''));
+  }
+
+  return { isPocket, extImage, extUrl, getSets, setsMap, revSlots, searchCards, searchDex, getCard, getSet, getSetFull, fallbackImage, pricing, slotsForCard, getRates, setIdOf, norm };
 })();
 
 // ---------- Catalogo ufficiale Cardmarket ----------

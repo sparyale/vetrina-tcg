@@ -62,6 +62,15 @@ Quando vuoi, premi **Scansiona prezzi** (in alto sul PC, in cima alla *Collezion
 scarica i prezzi Cardmarket di tutte le carte da TCGdex. Accanto al totale vedi la data dell'ultima scansione («prezzi del …»).
 I prezzi eBay e i minimi Cardmarket per lingua restano manuali: apri il link dalla scheda della carta e scrivi il prezzo.
 
+### Cercare le versioni reverse holo e timbrate
+In **Aggiungi carte**, sotto la barra di ricerca, scegli **Reverse holo e timbrate** (oppure scrivi
+`reverse`, `rev` o `timbrata` nella ricerca, es. «pikachu reverse»).
+I risultati mostrano una scheda per ogni versione: *Reverse holo*, reverse a motivo (*Poké Ball*, *Master Ball*,
+*Energia*, *Cosmo*…) e carte con timbro (*Timbro · Pokémon Center*, *Player Rewards Program*…).
+Il **+** aggiunge direttamente quella versione; toccando la carta la scheda si apre già su quella versione.
+Le carte timbrate che non hanno un prezzo loro usano il prezzo **reverse holo** della carta su Cardmarket,
+perché Cardmarket le cataloga così.
+
 ### Loghi dei master set e foto del sigillato
 - **Master set**: se TCGdex non ha il logo del set nella tua lingua, l'app usa quello inglese di TCGdex
   oppure lo cerca nell'archivio immagini di **Bulbapedia** (per i set giapponesi il logo JP).

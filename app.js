@@ -50,7 +50,9 @@ function fmtDate(d) { if (!d) return ''; try { return new Date(d).toLocaleDateSt
 const img = (base, q = 'low') => (!base ? '' : base.startsWith('ext:') ? API.extUrl(base.slice(4), q) : `${base}/${q}.webp`);
 const FINISH_LABEL = { pokeball: 'Poké Ball', masterball: 'Master Ball', cosmos: 'Cosmo', cosmo: 'Cosmo', stampsetlogo: 'Logo set', stamplogoset: 'Logo set',
   shadowless: 'Shadowless', shadowless1st: 'Shadowless', print1999: '1999-2000 (ristampa UK)' };
-const finishLabel = (f, fallback) => FINISH_LABEL[f] || fallback || (f ? f.replace(/^stamp/, 'Stamp ') : '');
+// nomi dei timbri di TCGdex (player-rewards-program) resi leggibili (Player Rewards Program)
+const prettyStamp = x => x && /^[a-z0-9\-\s]+$/.test(x) ? x.split(/[-\s]+/).filter(Boolean).map(w => w[0].toUpperCase() + w.slice(1)).join(' ') : x;
+const finishLabel = (f, fallback) => FINISH_LABEL[f] || prettyStamp(fallback) || (f ? f.replace(/^stamp/, 'Stamp ') : '');
 // carte che esistono anche in 1ª edizione (has1st): le altre versioni sono "Unlimited"
 // (tranne Shadowless e ristampa 1999-2000 del Set Base, che hanno il loro nome)
 const isUnlimited = it => !!(it && it.has1st && it.variant !== 'firstEdition' && !/^shadowless|^print1999$/.test(it.finish || ''));
@@ -841,12 +843,16 @@ const viewWishlist = (v, a) => viewCollection(v, a, true);
 function ownedCount(lang, cardId) {
   return collection().filter(i => i.lang === lang && i.cardId === cardId).reduce((a, i) => a + (i.qty || 1), 0);
 }
-function resultTile(c) {
-  const own = ownedCount(c.lang, c.id);
-  return `<div class="tile res ${own ? 'owned' : ''}" data-act="open-card" data-lang="${c.lang}" data-id="${esc(c.id)}" tabindex="0" role="button">
-    <div class="tile-img ${c.image ? '' : 'ph'}">${cardImg(c.image, c.lang + '|' + c.setId + '|' + c.localId)}
-      <div class="badges">${own ? `<span class="b own">✓ ${own}</span>` : ''}</div>
-      <button class="addbtn" data-act="quick-add" data-lang="${c.lang}" data-id="${esc(c.id)}" title="${t('quickAdd')}">${icon('plus')}</button>
+// versione scelta dalla ricerca «Reverse holo e timbrate»: attributi da passare a scheda e aggiunta rapida
+const slotAttrs = slot => slot ? ` data-variant="${esc(slot.variant)}" data-finish="${esc(slot.finish || '')}" data-fl="${esc(slot.finishLabel || '')}"` : '';
+const slotFromEl = el => el && el.dataset.variant ? { variant: el.dataset.variant, finish: el.dataset.finish || null, finishLabel: el.dataset.fl || null } : null;
+const revLabel = slot => slot.finish ? (/^stamp/.test(slot.finish) ? t('stamp_label') + ' · ' : 'Reverse · ') + finishLabel(slot.finish, slot.finishLabel) : t('variant_reverse');
+function resultTile(c, slot) {
+  const own = slot ? collection().filter(i => i.lang === c.lang && i.cardId === c.id && i.variant === slot.variant && (i.finish || null) === (slot.finish || null)).reduce((a, i) => a + (i.qty || 1), 0) : ownedCount(c.lang, c.id);
+  return `<div class="tile res ${own ? 'owned' : ''}" data-act="open-card" data-lang="${c.lang}" data-id="${esc(c.id)}"${slotAttrs(slot)} tabindex="0" role="button">
+    <div class="tile-img ${c.image ? '' : 'ph'} ${slot ? 'revtile' : ''}">${cardImg(c.image, c.lang + '|' + c.setId + '|' + c.localId)}
+      <div class="badges">${slot ? `<span class="b v">${esc(revLabel(slot))}</span>` : ''}${own ? `<span class="b own">✓ ${own}</span>` : ''}</div>
+      <button class="addbtn" data-act="quick-add" data-lang="${c.lang}" data-id="${esc(c.id)}"${slotAttrs(slot)} title="${t('quickAdd')}">${icon('plus')}</button>
     </div>
     <div class="tile-body"><div class="tile-name">${esc(c.name)}</div><div class="tile-sub">${esc(c.setName)} · ${numLabel(c)}</div></div>
   </div>`;
@@ -862,6 +868,7 @@ function viewSearch(v) {
     <select name="lang" aria-label="${t('searchIn')}">${CARD_LANGS.map(l => `<option value="${l}" ${lang === l ? 'selected' : ''}>${LANG_BADGE[l]} · ${t('lang_' + l)}</option>`).join('')}</select>
     <button class="btn primary">${t('search')}</button>
   </form>
+  <div class="seg searchver" role="group" aria-label="${t('variant')}">${[['all', 'rev_all'], ['rev', 'rev_only']].map(([k, l]) => `<button data-act="search-ver" data-v="${k}" class="${(S.searchVer || 'all') === k ? 'on' : ''}">${t(l)}</button>`).join('')}</div>
   <div class="search-tools"><span class="muted small">${t('search_sources')}<br>${t('search_tip')}</span>
     <button class="btn ghost" data-act="custom-card">${icon('plus')} ${t('custom_add')}</button></div>
   <div id="results">${s.loading ? `<div class="loading"><span class="spinner"></span>${t('searching')}</div>` :
@@ -878,9 +885,15 @@ function searchResultsHtml(s) {
   if (s.setLabel) info.push(`${t('search_inSet')}: <b>${esc(s.setLabel)}</b>`);
   if (s.numIgnored) info.push(esc(t('search_numIgnored').replace('{n}', s.num)));
   if (info.length) blocks.push(`<p class="note">${info.join(' · ')}</p>`);
-  if (s.results.length) blocks.push(`<div class="sub">${s.results.length} ${t('results')} · TCGdex</div><div class="grid">${s.results.slice(0, s.shown).map(resultTile).join('')}</div>
+  if (s.ver === 'rev' && s.results.length) {
+    // solo le versioni reverse holo e timbrate (una scheda per versione)
+    const tiles = s.results.slice(0, s.shown).flatMap(c => (s.rev[c.id] || []).map(slot => resultTile(c, slot)));
+    if (s.revLoading) blocks.push(`<div class="loading small"><span class="spinner"></span>${t('rev_loading').replace('{n}', s.revDone).replace('{t}', Math.min(s.results.length, s.shown))}</div>`);
+    blocks.push(`<div class="sub">${tiles.length} ${t('rev_found')} · TCGdex</div>${tiles.length ? `<div class="grid">${tiles.join('')}</div>` : !s.revLoading ? `<p class="muted">${t('rev_none')}</p>` : ''}
+      ${s.results.length > s.shown && !s.revLoading ? `<div class="center"><button class="btn" data-act="more">${t('loadMore')}</button></div>` : ''}`);
+  } else if (s.results.length) blocks.push(`<div class="sub">${s.results.length} ${t('results')} · TCGdex</div><div class="grid">${s.results.slice(0, s.shown).map(c => resultTile(c)).join('')}</div>
       ${s.results.length > s.shown ? `<div class="center"><button class="btn" data-act="more">${t('loadMore')}</button></div>` : ''}`);
-  (s.others || []).forEach(o => blocks.push(`<h3 class="rhead">${t('search_otherLang')} (${LANG_BADGE[o.lang]})</h3><div class="grid">${o.list.slice(0, 60).map(resultTile).join('')}</div>`));
+  if (s.ver !== 'rev') (s.others || []).forEach(o => blocks.push(`<h3 class="rhead">${t('search_otherLang')} (${LANG_BADGE[o.lang]})</h3><div class="grid">${o.list.slice(0, 60).map(c => resultTile(c)).join('')}</div>`));
   if (s.topsun && s.topsun.length) blocks.push(`<h3 class="rhead">Topsun (1997)</h3><div class="grid">${s.topsun.slice(0, 60).map(c => `
     <div class="tile res" data-act="open-cat" data-src="topsun" data-id="${esc(c.id)}" tabindex="0" role="button">
       <div class="tile-img"><img loading="lazy" src="${esc(c.imgUrl)}" alt="">
@@ -901,8 +914,31 @@ function searchResultsHtml(s) {
   return blocks.join('');
 }
 
+const REV_WORDS = /(^|\s)(reverse\s*holo|reverse|rev|rh|timbrat[aei]|stamp(ed)?|stampata)(?=\s|$)/gi;
+// carica i dettagli delle carte mostrate per sapere quali hanno la versione reverse o timbrata
+async function loadRevSlots(s) {
+  const list = s.results.slice(0, s.shown).filter(c => !(c.id in s.rev));
+  if (!list.length) return;
+  s.revLoading = true; s.revDone = s.results.slice(0, s.shown).length - list.length;
+  let i = 0, last = 0;
+  const step = () => { if (route().name === 'search' && S.search === s && Date.now() - last > 400) { last = Date.now(); render(); } };
+  async function worker() {
+    while (i < list.length) {
+      const c = list[i++];
+      try { const card = await API.getCard(c.lang || s.lang, c.id); s.rev[c.id] = card ? API.revSlots(card) : []; } catch { s.rev[c.id] = []; }
+      s.revDone++; step();
+    }
+  }
+  await Promise.all([1, 2, 3, 4, 5, 6].map(worker));
+  s.revLoading = false;
+  if (route().name === 'search' && S.search === s) render();
+}
 async function doSearch(q, lang) {
-  S.search = { q, lang, results: [], others: [], topsun: [], cm: [], shown: 60, loading: true, error: null, cmState: null };
+  let ver = S.searchVer || 'all';
+  const q2 = q.replace(REV_WORDS, ' ').replace(/\s+/g, ' ').trim();
+  if (q2 !== q && q2) { ver = 'rev'; S.searchVer = 'rev'; }
+  S.search = { q, lang, ver, rev: {}, revDone: 0, results: [], others: [], topsun: [], cm: [], shown: 60, loading: true, error: null, cmState: null };
+  q = q2 || q;
   if (route().name !== 'search') go('search'); else render();
   const s = S.search;
   // il catalogo Cardmarket serve anche a riconoscere i nomi delle espansioni: se è già salvato lo carica subito
@@ -915,6 +951,7 @@ async function doSearch(q, lang) {
   const cmQuery = r ? r.cmWords.join(' ') : q;
   s.topsun = TOPSUN.search(cmQuery);
   s.loading = false;
+  if (ver === 'rev') loadRevSlots(s);
   if (CM.canLoad) {
     s.cmState = CM.ready ? null : 'loading';
     if (route().name === 'search' && S.search === s) render();
@@ -1544,25 +1581,31 @@ function addItem(draft) {
   return it;
 }
 
-async function quickAdd(lang, id, btn) {
+function applySlot(d, card, slot) {
+  if (!slot) return d;
+  d.variant = slot.variant; d.finish = slot.finish || null; d.finishLabel = slot.finishLabel || null;
+  applyCardData(d, card); d.history = [];
+  return d;
+}
+async function quickAdd(lang, id, btn, slot) {
   btn && btn.classList.add('busy');
   try {
     const card = await API.getCard(lang, id);
-    const it = addItem(draftFromCard(card, lang));
+    const it = addItem(applySlot(draftFromCard(card, lang), card, slot));
     snapshotPortfolio(); save();
     toast(`${t('added')}: ${it.name}`);
     render();
   } catch { toast(t('offline')); btn && btn.classList.remove('busy'); }
 }
 
-async function openCard(lang, id, uidv) {
+async function openCard(lang, id, uidv, slot) {
   const existing = uidv ? S.items.find(i => i.uid === uidv) : null;
   $('#modal').innerHTML = `<div class="overlay" data-act="close-modal"><div class="modal loadingm"><span class="spinner"></span></div></div>`;
   document.body.classList.add('noscroll');
   let card = null;
   try { card = await API.getCard(lang, id); } catch { /* offline: usa i dati salvati */ }
   if (!card && !existing) { closeModal(); toast(t('offline')); return; }
-  const draft = existing ? JSON.parse(JSON.stringify(existing)) : draftFromCard(card, lang);
+  const draft = existing ? JSON.parse(JSON.stringify(existing)) : applySlot(draftFromCard(card, lang), card, slot);
   if (card && existing) { const pp = API.pricing(card, draft.variant, draft.finish); draft.cm = pp.cm; draft.tcgp = pp.tcg || null; delete draft.tcg; }
   if (!draft.image && card && card.image) draft.image = card.image;
   M = { draft, card, isNew: !existing };
@@ -1986,10 +2029,15 @@ document.addEventListener('click', async e => {
     case 'ui-lang': S.settings.uiLang = a.dataset.v; save(); render(); break;
     case 'refresh': if (S.refreshing) break; toast(t('scan_start')); refreshPrices(true).then(() => toast(t('scan_done'))); refreshSealedEbay(true).then(() => refreshGradedEbay(true)); break;
     case 'view': S.settings.view = a.dataset.v; save(); render(); break;
-    case 'more': S.search.shown += 60; render(); break;
+    case 'more': S.search.shown += 60; render(); if (S.search.ver === 'rev') loadRevSlots(S.search); break;
     case 'setview': S.setView = a.dataset.v; render(); break;
-    case 'quick-add': e.stopPropagation(); quickAdd(a.dataset.lang, a.dataset.id, a); break;
-    case 'open-card': openCard(a.dataset.lang, a.dataset.id); break;
+    case 'quick-add': e.stopPropagation(); quickAdd(a.dataset.lang, a.dataset.id, a, slotFromEl(a)); break;
+    case 'open-card': openCard(a.dataset.lang, a.dataset.id, null, slotFromEl(a)); break;
+    case 'search-ver': {
+      S.searchVer = a.dataset.v;
+      if (S.search.q) doSearch(S.search.q.replace(REV_WORDS, ' ').replace(/\s+/g, ' ').trim() || S.search.q, S.search.lang || S.settings.cardLang); else render();
+      break;
+    }
     case 'open-item': { const it = S.items.find(i => i.uid === a.dataset.uid); if (it) { if (it.db && it.db !== 'tcgdex') openStored(it); else openCard(it.lang, it.cardId, it.uid); } break; }
     case 'open-cat': openCatalog(a.dataset.src, a.dataset.id); break;
     case 'quick-cat': {
