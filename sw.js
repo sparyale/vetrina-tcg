@@ -2,7 +2,7 @@
 // Prima prova la rete (per avere sempre l'ultima versione pubblicata), se non c'è usa la copia salvata.
 // cache 'no-cache': chiede sempre al sito se il file è cambiato (senza, Chrome può usare per 10 minuti la copia vecchia).
 // Riguarda solo i file dell'app sul proprio sito: prezzi, immagini e Google passano normalmente.
-const CACHE = 'vetrina-app-v12';
+const CACHE = 'vetrina-app-v13';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(
   caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())

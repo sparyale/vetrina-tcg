@@ -568,20 +568,47 @@ function gradeDesc(co, g) {
   const d = { 9: 'MINT', 8.5: 'NM-MT+', 8: 'NM-MT', 7.5: 'NM+', 7: 'NM', 6.5: 'EX-MT+', 6: 'EX-MT', 5.5: 'EX+', 5: 'EX', 4.5: 'VG-EX+', 4: 'VG-EX', 3.5: 'VG+', 3: 'VG', 2.5: 'GOOD+', 2: 'GOOD', 1.5: 'FAIR', 1: 'POOR' };
   return d[v] || '';
 }
+// Marchio dell'ente disegnato in stile (non è il file del logo ufficiale)
+function slabLogo(co, tier) {
+  switch (co) {
+    case 'PSA': return `<span class="lg lg-psa">PSA</span>`;
+    case 'BGS': return `<span class="lg lg-bgs"><i></i><span><b>BECKETT</b><small>GRADING</small></span></span>`;
+    case 'CGC': return `<span class="lg lg-cgc"><b>CGC</b><small>CARDS</small></span>`;
+    case 'SGC': return `<span class="lg lg-sgc"><b>SGC</b></span>`;
+    case 'TAG': return `<span class="lg lg-tag"><b>TAG</b><small>GRADING</small></span>`;
+    case 'AiGrading': return `<span class="lg lg-ai"><b>AI</b><small>GRADING</small></span>`;
+    default: return `<span class="lg lg-txt"><b>${esc(co)}</b></span>`;
+  }
+}
+// codice a barre finto, diverso per ogni certificato
+function slabBarcode(cert) {
+  let h = 7, stops = [], x = 0;
+  for (const ch of String(cert)) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  while (x < 100) {
+    h = (h * 1103515245 + 12345) >>> 0;
+    const w = 1 + (h >>> 8) % 3, gap = 1 + (h >>> 12) % 2;
+    stops.push(`var(--lab-bar) ${x}% ${x + w * 0.9}%`, `transparent ${x + w * 0.9}% ${x + (w + gap) * 0.9}%`);
+    x += (w + gap) * 0.9;
+  }
+  return `<i class="sl-bar" style="background:linear-gradient(90deg,${stops.join(',')})"></i>`;
+}
 function slabHtml(i, inner) {
   const co = i.grade.co, g = String(i.grade.g || '').replace(',', '.');
   const v = parseFloat(g);
   // BGS: argento fino a 9, oro da 9.5 (anche Pristine 10), nera solo per il Black Label (tutti i sottovoti 10)
+  // CGC: etichetta oro per il Pristine 10
   const black = isBlackLabel(i);
-  const tier = co === 'BGS' ? (black ? 'black' : v >= 9.5 ? 'gold' : 'silver') : '';
+  const tier = co === 'BGS' ? (black ? 'black' : v >= 9.5 ? 'gold' : 'silver') : co === 'CGC' && v >= 10 ? 'gold' : '';
   const year = i.releaseDate ? String(i.releaseDate).slice(0, 4) + ' ' : '';
-  const logo = co === 'AiGrading' ? 'AI GRADING' : co;
+  const lang = { it: 'ITALIAN', en: '', ja: 'JAPANESE', fr: 'FRENCH', de: 'GERMAN', es: 'SPANISH' }[i.lang] ?? String(i.lang || '').toUpperCase();
+  const cert = i.grade.cert || '';
   return `<div class="slab slab-${co.toLowerCase().replace(/[^a-z]/g, '')} ${tier}">
     <div class="sl-label">
-      <div class="sl-l"><span class="sl-set">${esc(year + 'POKÉMON ' + (i.lang || '').toUpperCase() + ' ' + (i.setName || ''))}</span>
+      <div class="sl-logo">${slabLogo(co, tier)}</div>
+      <div class="sl-l"><span class="sl-set">${esc((year + 'POKÉMON ' + lang + ' ' + (i.setName || '')).replace(/\s+/g, ' '))}</span>
         <b class="sl-name">${esc(i.name)}</b><span class="sl-var">${esc(isPlain(i) ? '' : variantLabel(i))}</span></div>
       <div class="sl-r"><span class="sl-num">${esc(numLabel(i))}</span><span class="sl-desc">${esc(black ? 'BLACK LABEL' : gradeDesc(co, g))}</span><b class="sl-g">${esc(g || '–')}</b></div>
-      <div class="sl-foot"><span class="sl-co">${esc(logo)}</span>${i.grade.cert ? `<span class="sl-cert">${esc(i.grade.cert)}</span>` : ''}</div>
+      <div class="sl-foot">${cert ? slabBarcode(cert) + `<span class="sl-cert">${esc(cert)}</span>` : ''}</div>
     </div>
     <div class="sl-win">${inner}</div>
   </div>`;
