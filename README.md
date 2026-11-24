@@ -1,0 +1,2 @@
+# vetrina-tcg
+Collector app
