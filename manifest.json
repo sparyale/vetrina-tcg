@@ -1,0 +1,50 @@
+{
+  "manifest_version": 3,
+  "name": "Vetrina TCG",
+  "version": "1.12.0",
+  "description": "La tua collezione di carte Pokémon: prezzi Cardmarket e venduti eBay, in italiano, inglese e giapponese.",
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "action": { "default_title": "Apri Vetrina TCG", "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png" } },
+  "background": { "service_worker": "background.js" },
+  "permissions": ["unlimitedStorage", "alarms", "storage"],
+  "host_permissions": [
+    "https://api.tcgdex.net/*",
+    "https://assets.tcgdex.net/*",
+    "https://api.frankfurter.dev/*",
+    "https://downloads.s3.cardmarket.com/*",
+    "https://www.cardmarket.com/*",
+    "https://www.ebay.it/*",
+    "https://www.ebay.com/*",
+    "https://www.ebay.de/*",
+    "https://www.ebay.fr/*",
+    "https://www.ebay.es/*",
+    "https://www.ebay.co.uk/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.ebay.it/sch/*", "https://www.ebay.com/sch/*", "https://www.ebay.de/sch/*",
+        "https://www.ebay.fr/sch/*", "https://www.ebay.es/sch/*", "https://www.ebay.co.uk/sch/*",
+        "https://signin.ebay.it/*", "https://signin.ebay.com/*", "https://signin.ebay.de/*",
+        "https://signin.ebay.fr/*", "https://signin.ebay.es/*", "https://signin.ebay.co.uk/*"
+      ],
+      "js": ["ebay-parse.js", "content-ebay.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.cardmarket.com/*/Pokemon/Products/Singles*"],
+      "js": ["content-cardmarket.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.cardmarket.com/*/Pokemon/Products/Singles/*", "https://www.cardmarket.com/*/Pokemon/Products?*"],
+      "js": ["content-cm-price.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.cardmarket.com/*/Pokemon/Products/*", "https://www.cardmarket.com/*/Pokemon/Products?*"],
+      "js": ["content-cm-image.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
