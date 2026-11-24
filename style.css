@@ -1,40 +1,41 @@
 :root, [data-theme="dark"] {
-  --bg: #0b0d14;
-  --bg2: #10131d;
-  --panel: #151926;
-  --panel2: #1b2031;
+  /* tema Team Rocket: nero profondo, rosso acceso, oro per i dettagli */
+  --bg: #0a0a0b;
+  --bg2: #101012;
+  --panel: #161618;
+  --panel2: #1f1f22;
   --line: rgba(255,255,255,.07);
-  --line2: rgba(255,255,255,.12);
-  --ink: #eef0f7;
-  --ink2: #a9afc4;
-  --ink3: #6f7690;
-  --accent: #8b6cff;
-  --accent2: #ff6a88;
+  --line2: rgba(255,255,255,.13);
+  --ink: #f4f1f1;
+  --ink2: #b6aeae;
+  --ink3: #7a7171;
+  --accent: #e3182d;
+  --accent2: #ff4a5a;
   --gold: #ffc94a;
   --pos: #34d399;
   --neg: #fb7185;
-  --grad: linear-gradient(135deg, #ffcf4a 0%, #ff6a88 50%, #7a5cff 100%);
-  --shadow: 0 10px 30px rgba(0,0,0,.35);
-  --card-bg: #0f121b;
+  --grad: linear-gradient(135deg, #ff5a66 0%, #e3182d 45%, #8a0b16 100%);
+  --shadow: 0 10px 30px rgba(0,0,0,.5);
+  --card-bg: #121214;
   color-scheme: dark;
 }
 [data-theme="light"] {
-  --bg: #f4f5fa;
-  --bg2: #eceef6;
+  --bg: #f6f3f3;
+  --bg2: #eeeaea;
   --panel: #ffffff;
-  --panel2: #f3f4fa;
-  --line: rgba(20,24,40,.08);
-  --line2: rgba(20,24,40,.14);
-  --ink: #171a26;
-  --ink2: #505771;
-  --ink3: #8a90a6;
-  --accent: #6d4dff;
-  --accent2: #e64a6e;
-  --gold: #c98a00;
+  --panel2: #f5f1f1;
+  --line: rgba(30,10,12,.09);
+  --line2: rgba(30,10,12,.16);
+  --ink: #171314;
+  --ink2: #574d4f;
+  --ink3: #8f8486;
+  --accent: #c8102e;
+  --accent2: #e2334a;
+  --gold: #b07800;
   --pos: #0f9f6e;
   --neg: #e11d48;
-  --shadow: 0 8px 24px rgba(30,35,60,.10);
-  --card-bg: #e9ebf3;
+  --shadow: 0 8px 24px rgba(40,10,15,.10);
+  --card-bg: #ece7e7;
   color-scheme: light;
 }
 
@@ -45,7 +46,7 @@ html { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100
 body { overflow-x: clip; max-width: 100%; }
 body {
   background: var(--bg);
-  background-image: radial-gradient(1200px 600px at 85% -10%, rgba(139,108,255,.13), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(255,106,136,.08), transparent 60%);
+  background-image: radial-gradient(1200px 600px at 85% -10%, rgba(227,24,45,.14), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(140,10,22,.16), transparent 60%);
   background-attachment: fixed;
   color: var(--ink);
   font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Hiragino Sans", "Yu Gothic UI", Meiryo, sans-serif;
@@ -203,7 +204,7 @@ button.chip { cursor: pointer; }
 .b { font-size: 10.5px; font-weight: 750; letter-spacing: .03em; padding: 2px 6px; border-radius: 6px; background: rgba(10,12,20,.78); color: #fff; backdrop-filter: blur(4px); }
 .b.qty { background: var(--accent); }
 .b.gold { background: linear-gradient(135deg, #ffd96a, #e2a400); color: #2a1d00; }
-.b.v { background: rgba(122,92,255,.85); }
+.b.v { background: rgba(190,16,36,.88); }
 .b.own { background: var(--pos); color: #04281a; }
 .tile-body { padding: 9px 2px 0; min-width: 0; }
 .tile-name { font-weight: 650; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
