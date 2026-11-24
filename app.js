@@ -268,19 +268,19 @@ function applySyncState(d) {
   if (!d || !Array.isArray(d.items)) return;
   const keep = Object.fromEntries(DEVICE_SETTINGS.map(k => [k, S.settings[k]]));
   Object.assign(S.settings, d.settings || {}, keep);
-  S.items = d.items; S.masters = d.masters || []; S.sealed = d.sealed || []; S.portfolio = d.portfolio || [];
+  S.items = fixImgs(d.items); S.masters = d.masters || []; S.sealed = d.sealed || []; S.portfolio = d.portfolio || [];
   S.editedAt = d.updatedAt || Date.now();
   masterCache.clear(); writeState(); render();
   toast(t('drive_pulled'));
 }
+// immagini Scrydex salvate (per alcune carte era solo il retro, es. Classic Collection): si tolgono e si ricalcolano
+const fixImgs = items => { (items || []).forEach(i => { if (/^ext:s:/.test(i.image || '')) i.image = null; }); return items; };
 async function load() {
   const st = await DB.get('state');
   if (st) {
     S.editedAt = st.editedAt || 0;
-  // immagini Scrydex salvate (per alcune carte era solo il retro): si ricalcolano, con TCGplayer prima
-  S.items.forEach(i => { if (typeof i.image === 'string' && i.image.startsWith('ext:s:')) i.image = null; });
     Object.assign(S.settings, st.settings || {});
-    S.items = st.items || [];
+    S.items = fixImgs(st.items || []);
     S.portfolio = st.portfolio || [];
     S.masters = st.masters || [];
     S.sealed = st.sealed || [];
@@ -544,7 +544,8 @@ function itemImg(i, q = 'low') {
   if (i.photo) return `<img loading="lazy" src="${i.photo}" alt="">`;
   if (i.imgUrl) return `<img loading="lazy" src="${esc(i.imgUrl)}" alt="">`;
   if (i.db === 'cm' && !i.image) { const c = CM.imageOf(i.cmId); if (c) return c.imgUrl ? `<img loading="lazy" src="${esc(c.imgUrl)}" alt="">` : cardImg(c.image, null, q); }
-  return cardImg(i.image, !i.db || i.db === 'tcgdex' ? i.lang + '|' + i.setId + '|' + i.localId : null, q);
+  // immagini Scrydex salvate (per alcune carte era solo il retro, es. Classic Collection): si ricalcolano, TCGplayer prima
+  return cardImg(/^ext:s:/.test(i.image || '') ? null : i.image, !i.db || i.db === 'tcgdex' ? i.lang + '|' + i.setId + '|' + i.localId : null, q);
 }
 // ---------- carte gradate: anteprima "in busta" con l'etichetta in stile dell'ente ----------
 const isGraded = i => !!(i && i.grade && i.grade.co);
@@ -2256,7 +2257,7 @@ document.addEventListener('change', async e => {
     try {
       const data = JSON.parse(await el.files[0].text());
       if (!Array.isArray(data.items)) throw new Error('bad');
-      S.items = data.items; S.portfolio = data.portfolio || []; Object.assign(S.settings, data.settings || {});
+      S.items = fixImgs(data.items); S.portfolio = data.portfolio || []; Object.assign(S.settings, data.settings || {});
       S.masters = data.masters || []; S.sealed = data.sealed || [];
       save(); toast(t('imported')); render();
     } catch { alert('File non valido'); }
