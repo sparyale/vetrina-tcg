@@ -40,6 +40,9 @@
 
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+/* niente scorrimento laterale della pagina (su iPhone la pagina resta sempre larga quanto lo schermo) */
+html { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { overflow-x: clip; max-width: 100%; }
 body {
   background: var(--bg);
   background-image: radial-gradient(1200px 600px at 85% -10%, rgba(139,108,255,.13), transparent 60%), radial-gradient(900px 500px at -10% 110%, rgba(255,106,136,.08), transparent 60%);
@@ -63,13 +66,13 @@ h3 { font-size: 15px; font-weight: 650; }
 .ic { width: 20px; height: 20px; fill: currentColor; flex: none; }
 .ic.sm { width: 14px; height: 14px; vertical-align: -2px; }
 
-#app { display: grid; grid-template-columns: 236px 1fr; min-height: 100vh; }
+#app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100vh; }
 
 /* ---- barra laterale ---- */
 .side { position: sticky; top: 0; height: 100vh; padding: 22px 14px; display: flex; flex-direction: column; gap: 22px; border-right: 1px solid var(--line); background: color-mix(in srgb, var(--bg2) 70%, transparent); backdrop-filter: blur(10px); }
 .brand { display: flex; gap: 10px; align-items: center; padding: 0 8px; }
 .logo svg { width: 40px; height: 40px; display: block; }
-.brand-name { font-weight: 800; font-size: 19px; letter-spacing: -.02em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.brand-name { font-weight: 800; font-size: 17px; letter-spacing: -.02em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .brand-sub { font-size: 11.5px; color: var(--ink3); }
 .side nav { display: flex; flex-direction: column; gap: 3px; }
 .nav { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; color: var(--ink2); font-weight: 550; transition: background .15s, color .15s; }
@@ -401,7 +404,10 @@ button.chip { cursor: pointer; }
   .settings { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
-  #app { grid-template-columns: 1fr; }
+  #app { grid-template-columns: minmax(0, 1fr); overflow-x: clip; }
+  /* tutti i campi a 16px: sotto questa misura Safari ingrandisce la pagina al tocco e poi la lascia «larga» */
+  input, select, textarea { font-size: 16px !important; }
+  img, video { max-width: 100%; }
   .side { display: none; }
   /* margini larghi dai bordi dello schermo (angoli arrotondati e notch dell'iPhone) */
   .main { padding: 0 calc(20px + env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); }
@@ -416,8 +422,8 @@ button.chip { cursor: pointer; }
   h1 { font-size: 22px; }
   .page-head { flex-wrap: nowrap; align-items: center; margin: 2px 0 14px; }
   .page-head .scanbtn { padding: 9px 12px; font-size: 13px; }
-  .coltools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .coltools select.inp { width: 100%; padding: 9px 10px; }
+  .coltools { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .coltools select.inp { width: 100%; min-width: 0; padding: 9px 10px; text-overflow: ellipsis; }
   .coltools .seg { justify-self: end; }
   .panel { padding: 16px; border-radius: 16px; }
   .dash { grid-template-columns: 1fr; }

@@ -1,4 +1,4 @@
-// Vetrina TCG — interfaccia
+// NidoCollection (ex Vetrina TCG) — interfaccia
 'use strict';
 
 const S = {
@@ -445,7 +445,7 @@ function shell() {
   document.documentElement.dataset.theme = S.settings.theme;
   $('#app').innerHTML = `
   <aside class="side">
-    <div class="brand"><div class="logo">${logoSvg()}</div><div><div class="brand-name">Vetrina</div><div class="brand-sub">${t('appSubtitle')}</div></div></div>
+    <div class="brand"><div class="logo">${logoSvg()}</div><div><div class="brand-name">NidoCollection</div><div class="brand-sub">${t('appSubtitle')}</div></div></div>
     <nav>${nav.map(n => `<a href="#/${n}" class="nav ${r === n ? 'on' : ''}">${icon(n)}<span>${t('nav_' + n)}</span>${n === 'wishlist' && wishlist().length ? `<em>${wishlist().length}</em>` : ''}</a>`).join('')}</nav>
     <div class="side-foot">
       <div class="seg" role="group" aria-label="${t('settings_ui')}">${['it', 'en', 'ja'].map(l => `<button data-act="ui-lang" data-v="${l}" class="${S.settings.uiLang === l ? 'on' : ''}">${{ it: 'IT', en: 'EN', ja: '日本' }[l]}</button>`).join('')}</div>
@@ -502,10 +502,9 @@ async function driveConnectAndSync() {
   renderDriveState();
 }
 
+// logo: volto di Nidoking (stesso disegno di icons/nidoking.svg, usato anche come icona dell'app)
 function logoSvg() {
-  return `<svg viewBox="0 0 40 40"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffcf4a"/><stop offset=".5" stop-color="#ff6a88"/><stop offset="1" stop-color="#7a5cff"/></linearGradient></defs>
-  <rect x="9" y="5" width="20" height="28" rx="3.5" transform="rotate(-12 19 19)" fill="#fff" opacity=".18"/>
-  <rect x="11" y="6" width="20" height="28" rx="3.5" fill="url(#lg)"/><circle cx="21" cy="20" r="5.5" fill="none" stroke="#fff" stroke-width="2.2"/><path d="M15.5 20h11" stroke="#fff" stroke-width="2.2"/></svg>`;
+  return `<svg viewBox="0 0 512 512"><defs><linearGradient id="nk-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1748"/><stop offset="1" stop-color="#0b0d14"/></linearGradient><linearGradient id="nk-skin" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9d6ad8"/><stop offset="1" stop-color="#7a49b8"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#nk-bg)"/><g stroke="#241338" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"><path d="M152 262 L54 70 Q130 104 236 180 Z" fill="url(#nk-skin)"/><path d="M360 262 L458 70 Q382 104 276 180 Z" fill="url(#nk-skin)"/><path d="M160 236 L98 112 Q146 140 210 186 Z" fill="#4f2d7d" stroke="none"/><path d="M352 236 L414 112 Q366 140 302 186 Z" fill="#4f2d7d" stroke="none"/><ellipse cx="256" cy="306" rx="160" ry="142" fill="url(#nk-skin)"/><path d="M212 206 Q230 112 256 36 Q282 112 300 206 Q256 222 212 206 Z" fill="#f3eefb"/></g><path d="M256 44 Q280 114 296 202 Q276 210 256 212 Z" fill="#cdbfe6"/><ellipse cx="256" cy="362" rx="114" ry="74" fill="#ab84e0"/><g stroke="#241338" stroke-width="6" stroke-linejoin="round"><path d="M158 286 Q196 254 236 270 Q218 308 178 306 Z" fill="#fff"/><path d="M354 286 Q316 254 276 270 Q294 308 334 306 Z" fill="#fff"/></g><circle cx="210" cy="284" r="13" fill="#d8304d"/><circle cx="302" cy="284" r="13" fill="#d8304d"/><circle cx="212" cy="284" r="5.5" fill="#1a0d2a"/><circle cx="300" cy="284" r="5.5" fill="#1a0d2a"/><g stroke="#241338" stroke-width="15" stroke-linecap="round" fill="none"><path d="M150 250 Q196 250 240 266"/><path d="M362 250 Q316 250 272 266"/></g><ellipse cx="234" cy="340" rx="7" ry="5" fill="#241338"/><ellipse cx="278" cy="340" rx="7" ry="5" fill="#241338"/><g stroke="#241338" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"><path d="M178 386 Q256 414 334 386" fill="none" stroke-width="9"/><path d="M198 392 L212 352 L228 398 Z" fill="#fff"/><path d="M314 392 L300 352 L284 398 Z" fill="#fff"/></g></svg>`;
 }
 
 function render() {
@@ -1454,7 +1453,7 @@ function viewSettings(v) {
         <div class="btns"><button class="btn" data-act="cm-refresh">${t('cm_refresh')}</button><button class="btn" data-act="cm-import-names">${t('cm_importNames')}</button></div>
         <p class="muted small">${t('cm_importHint')}</p>`; })() : `<p class="note warn">${t(cmNoExtKey())}</p>`}
       <h3>${t('sources_title')}</h3><p class="muted">${t('sources_text')}</p>
-      <p class="muted small"><b>Vetrina TCG ${APP_VERSION}</b></p>
+      <p class="muted small"><b>NidoCollection ${APP_VERSION}</b></p>
       <p class="muted small">Pokémon e i nomi correlati sono marchi di Nintendo, Creatures e GAME FREAK. App personale non ufficiale.</p>
     </div>
   </div>`;

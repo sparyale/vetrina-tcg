@@ -85,7 +85,7 @@ const DRIVE = (() => {
       return id;
     }
     const boundary = 'vtcg' + Math.random().toString(36).slice(2);
-    const meta = { name: FILE_NAME, mimeType: 'application/json', description: 'Vetrina TCG: collezione Pokémon (non modificare a mano)' };
+    const meta = { name: FILE_NAME, mimeType: 'application/json', description: 'NidoCollection: collezione Pokémon (non modificare a mano)' };
     const multipart = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--${boundary}\r\nContent-Type: application/json\r\n\r\n${body}\r\n--${boundary}--`;
     const j = await (await api('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
       method: 'POST', headers: { 'Content-Type': `multipart/related; boundary=${boundary}` }, body: multipart })).json();

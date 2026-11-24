@@ -1,4 +1,6 @@
-# Vetrina TCG: la tua collezione di carte Pokémon
+# NidoCollection: la tua collezione di carte Pokémon
+
+*(prima si chiamava «Vetrina TCG»: i dati, il file su Drive `vetrina-tcg.json` e l'indirizzo del sito restano gli stessi)*
 
 App personale che gira in Chrome, senza server e senza account. I dati restano nel browser.
 
