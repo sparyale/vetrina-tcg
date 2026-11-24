@@ -100,6 +100,7 @@ h3 { font-size: 15px; font-weight: 650; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 .view { animation: fade .25s ease; }
+.view.still { animation: none; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
 
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin: 6px 0 16px; flex-wrap: wrap; }
@@ -382,6 +383,11 @@ button.chip { cursor: pointer; }
 
 .tabbar { display: none; }
 .mobile-only { display: none !important; }
+.mob-only { display: none !important; }
+.scanbtn { flex: none; }
+.scanbtn.spin .ic { animation: spin 1s linear infinite; }
+.gsearch input[type=search] { -webkit-appearance: none; appearance: none; }
+.gsearch input::-webkit-search-decoration { display: none; }
 .iconbtn.drive.warn { color: #f0b429; border-color: color-mix(in srgb, #f0b429 50%, var(--line)); }
 .iconbtn.drive.err { color: #ff5d6c; border-color: color-mix(in srgb, #ff5d6c 50%, var(--line)); }
 .iconbtn.drive.spin .ic { animation: pulse 1.2s ease-in-out infinite; }
@@ -397,12 +403,26 @@ button.chip { cursor: pointer; }
 @media (max-width: 760px) {
   #app { grid-template-columns: 1fr; }
   .side { display: none; }
-  .main { padding: 0 max(16px, env(safe-area-inset-right)) calc(90px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  /* margini larghi dai bordi dello schermo (angoli arrotondati e notch dell'iPhone) */
+  .main { padding: 0 calc(20px + env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); }
   .mobile-only { display: grid !important; }
-  .top { padding-top: calc(12px + env(safe-area-inset-top)); padding-bottom: 12px; }
+  .mob-only { display: inline-flex !important; }
+  .desk-only, .cur { display: none !important; }
+  .top { gap: 8px; padding-top: calc(12px + env(safe-area-inset-top)); padding-bottom: 14px; }
+  .gsearch { max-width: none; height: 44px; border-radius: 14px; }
+  /* testo a 16px: Safari non ingrandisce la pagina quando tocchi un campo */
+  .gsearch input, .inp, select.inp { font-size: 16px; }
+  .iconbtn { width: 44px; height: 44px; border-radius: 14px; }
+  h1 { font-size: 22px; }
+  .page-head { flex-wrap: nowrap; align-items: center; margin: 2px 0 14px; }
+  .page-head .scanbtn { padding: 9px 12px; font-size: 13px; }
+  .coltools { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .coltools select.inp { width: 100%; padding: 9px 10px; }
+  .coltools .seg { justify-self: end; }
+  .panel { padding: 16px; border-radius: 16px; }
   .dash { grid-template-columns: 1fr; }
   .big { font-size: 32px; }
-  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px; }
+  .grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px 12px; }
   .bigsearch { flex-wrap: wrap; } .bigsearch input { flex-basis: 70%; }
   .tabbar { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: color-mix(in srgb, var(--bg2) 92%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
   .tabbar a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 2px; font-size: 10.5px; color: var(--ink3); }

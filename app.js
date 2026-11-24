@@ -348,7 +348,7 @@ async function refreshPrices(force = false) {
     }
   }
   const stale = S.items.filter(i => (!i.db || i.db === 'tcgdex') && (force || !i.pricesAt || Date.now() - i.pricesAt > 12 * 36e5));
-  if (!stale.length) { snapshotPortfolio(); saveAuto(); return; }
+  if (!stale.length) { if (force) { S.settings.pricesScanAt = Date.now(); snapshotPortfolio(); save(); render(); } else { snapshotPortfolio(); saveAuto(); } return; }
   S.refreshing = true; renderRefreshState();
   const keys = [...new Set(stale.map(i => i.lang + '|' + i.cardId))];
   let idx = 0, failed = 0;
@@ -365,7 +365,8 @@ async function refreshPrices(force = false) {
   await Promise.all([worker(), worker(), worker(), worker()]);
   S.refreshing = false;
   // (niente ricerche eBay/Cardmarket per tutte le carte insieme: si fanno una alla volta aprendo la carta)
-  snapshotPortfolio(); saveAuto();
+  if (force) S.settings.pricesScanAt = Date.now();
+  snapshotPortfolio(); if (force) save(); else saveAuto();
   if (failed) toast(t('offline'));
   render();
 }
@@ -397,9 +398,14 @@ function refreshAutoEbay(force = false) {
   });
 }
 function renderRefreshState() {
-  const b = $('#refreshBtn');
-  if (b) { b.classList.toggle('spin', S.refreshing); b.title = S.refreshing ? t('refreshing') : t('refreshPrices'); }
+  document.querySelectorAll('.scanbtn').forEach(b => { b.classList.toggle('spin', S.refreshing); b.disabled = !!S.refreshing; b.title = S.refreshing ? t('refreshing') : t('refreshPrices'); });
 }
+const isMobile = () => matchMedia('(max-width: 760px)').matches;
+// pulsante «Scansiona prezzi» (+ data dell'ultima scansione)
+function scanBtnHtml(cls = '') {
+  return `<button class="btn scanbtn ${cls} ${S.refreshing ? 'spin' : ''}" data-act="refresh" title="${esc(S.refreshing ? t('refreshing') : t('refreshPrices'))}" ${S.refreshing ? 'disabled' : ''}>${icon('refresh')}<span>${t('scan_btn')}</span></button>`;
+}
+const scanWhen = () => S.settings.pricesScanAt ? t('scan_last').replace('{d}', new Date(S.settings.pricesScanAt).toLocaleDateString(locale())) : t('scan_never');
 
 // ---------- struttura ----------
 const ICONS = {
@@ -424,15 +430,17 @@ const ICONS = {
 const icon = (n, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
 
 function route() {
-  const h = (location.hash || '#/dashboard').slice(2).split('/');
-  return { name: h[0] || 'dashboard', args: h.slice(1).map(decodeURIComponent) };
+  const def = isMobile() ? 'collection' : 'dashboard';
+  const h = (location.hash || '#/' + def).slice(2).split('/');
+  return { name: h[0] || def, args: h.slice(1).map(decodeURIComponent) };
 }
 function go(path) { location.hash = '#/' + path; }
 
 function shell() {
   const r = route().name;
   const nav = ['dashboard', 'collection', 'search', 'sets', 'master', 'sealed', 'wishlist', 'settings'];
-  const tabs = ['dashboard', 'collection', 'search', 'master', 'sealed'];
+  const tabs = ['collection', 'search', 'master', 'sealed', 'dashboard'];
+  const mob = isMobile();
   document.documentElement.lang = S.settings.uiLang;
   document.documentElement.dataset.theme = S.settings.theme;
   $('#app').innerHTML = `
@@ -445,15 +453,16 @@ function shell() {
   </aside>
   <main class="main">
     <header class="top">
-      <form class="gsearch" data-form="gsearch">${icon('search')}<input name="q" autocomplete="off" placeholder="${esc(t('searchPlaceholder'))}" value="${esc(S.search.q)}"></form>
-      <button id="refreshBtn" class="iconbtn ${S.refreshing ? 'spin' : ''}" data-act="refresh" title="${t('refreshPrices')}">${icon('refresh')}</button>
+      ${mob ? `<form class="gsearch" data-form="gsearch">${icon('search')}<input name="q" type="search" data-cf="q" enterkeyhint="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="${esc(t('searchOwned'))}" value="${esc(S.colFilter.q)}"></form>`
+        : `<form class="gsearch" data-form="gsearch">${icon('search')}<input name="q" autocomplete="off" placeholder="${esc(t('searchPlaceholder'))}" value="${esc(S.search.q)}"></form>
+      ${scanBtnHtml('desk-only')}`}
       ${driveBtnHtml()}
       <a href="#/settings" class="iconbtn mobile-only ${r === 'settings' ? 'on' : ''}" title="${t('nav_settings')}">${icon('settings')}</a>
       <select class="cur" data-set="currency" aria-label="${t('settings_currency')}">${['EUR', 'USD', 'GBP', 'JPY'].map(c => `<option ${S.settings.currency === c ? 'selected' : ''}>${c}</option>`).join('')}</select>
     </header>
     <section id="view" class="view"></section>
   </main>
-  <nav class="tabbar">${tabs.map(n => `<a href="#/${n}" class="${r === n ? 'on' : ''}">${icon(n)}<span>${t('nav_' + n)}</span></a>`).join('')}</nav>
+  <nav class="tabbar">${tabs.map(n => `<a href="#/${n}" class="${r === n ? 'on' : ''}">${icon(n)}<span>${t((n === 'search' ? 'tab_' : 'nav_') + n)}</span></a>`).join('')}</nav>
   <div id="modal"></div><div id="toasts"></div>`;
 }
 
@@ -503,6 +512,8 @@ function render() {
   const r = route();
   shell();
   const v = $('#view');
+  // mentre scrivi nella ricerca: niente animazione di comparsa a ogni lettera
+  if (S.noAnim) { v.classList.add('still'); S.noAnim = false; }
   ({ dashboard: viewDashboard, collection: viewCollection, search: viewSearch, sets: viewSets, master: viewMaster, sealed: viewSealed, wishlist: viewWishlist, settings: viewSettings }[r.name] || viewDashboard)(v, r.args);
   hydrateImages(v);
 }
@@ -750,7 +761,7 @@ function viewCollection(v, args, wish = false) {
   // Master set completi: una sola scheda con il valore complessivo (le gradate restano a parte).
   // Scegliendo il set nel filtro si vedono di nuovo le singole carte.
   const groups = [];
-  if (!wish && !f.set) {
+  if (!wish && !f.set && !f.q) {
     // (solo con il conteggio fatto dopo l'unione dei set inclusi: stats.ver 2)
     S.masters.filter(m => m.stats && m.stats.ver === 2 && m.stats.total > 0 && m.stats.owned >= m.stats.total).forEach(m => {
       const k = m.lang + '|' + m.setId;
@@ -797,10 +808,11 @@ function viewCollection(v, args, wish = false) {
   }
   v.innerHTML = `
   <div class="page-head">
-    <div><h1>${wish ? t('nav_wishlist') : t('nav_collection')}</h1><div class="sub">${tt.cards} ${t('cards').toLowerCase()} · <b>${money(tt.value)}</b></div></div>
+    <div><h1>${wish ? t('nav_wishlist') : t('nav_collection')}</h1><div class="sub">${tt.cards} ${t('cards').toLowerCase()} · <b>${money(tt.value)}</b>${wish ? '' : ` · <span class="muted">${scanWhen()}</span>`}</div></div>
+    ${wish ? '' : scanBtnHtml('mob-only')}
   </div>
-  <div class="toolbar">
-    <input class="inp" data-cf="q" placeholder="${esc(t('filter'))}" value="${esc(f.q)}">
+  <div class="toolbar coltools">
+    ${isMobile() ? '' : `<input class="inp" data-cf="q" placeholder="${esc(t('filter'))}" value="${esc(f.q)}">`}
     <select class="inp" data-cf="set"><option value="">${t('allSets')}</option>${setsOpts.map(i => `<option value="${esc(i.lang + '|' + i.setId)}" ${f.set === i.lang + '|' + i.setId ? 'selected' : ''}>${esc(i.setName)} (${LANG_BADGE[i.lang]})</option>`).join('')}</select>
     <select class="inp" data-cf="lang"><option value="">${t('allLangs')}</option>${langs.map(l => `<option value="${l}" ${f.lang === l ? 'selected' : ''}>${t('lang_' + l)}</option>`).join('')}</select>
     <select class="inp" data-set="sort" aria-label="${t('sort')}">${['value', 'change', 'gain', 'added', 'name', 'set'].map(s => `<option value="${s}" ${S.settings.sort === s ? 'selected' : ''}>${t('sort') }: ${t('sort_' + s)}</option>`).join('')}</select>
@@ -1919,7 +1931,7 @@ document.addEventListener('click', async e => {
   if (act === 'close-modal') { if (e.target === a || a.classList.contains('mclose')) closeModal(); return; }
   switch (act) {
     case 'ui-lang': S.settings.uiLang = a.dataset.v; save(); render(); break;
-    case 'refresh': refreshPrices(true); refreshSealedEbay(true).then(() => refreshGradedEbay(true)); break;
+    case 'refresh': if (S.refreshing) break; toast(t('scan_start')); refreshPrices(true).then(() => toast(t('scan_done'))); refreshSealedEbay(true).then(() => refreshGradedEbay(true)); break;
     case 'view': S.settings.view = a.dataset.v; save(); render(); break;
     case 'more': S.search.shown += 60; render(); break;
     case 'setview': S.setView = a.dataset.v; render(); break;
@@ -2046,6 +2058,7 @@ document.addEventListener('submit', e => {
   const f = e.target.closest('form[data-form]'); if (!f) return;
   e.preventDefault();
   const fd = new FormData(f);
+  if (f.dataset.form === 'gsearch' && isMobile()) { const n = f.querySelector('input'); n && n.blur(); return; }
   if (f.dataset.form === 'gsearch') { const q = (fd.get('q') || '').trim(); if (q) doSearch(q, S.search.lang || S.settings.cardLang); }
   if (f.dataset.form === 'search') { const q = (fd.get('q') || '').trim(); if (q) doSearch(q, fd.get('lang')); }
   if (f.dataset.form === 'ebay') {
@@ -2123,7 +2136,10 @@ document.addEventListener('input', e => {
   const el = e.target;
   if (el.dataset.cf === 'q') {
     S.colFilter.q = el.value;
-    const pos = el.selectionStart; render();
+    const pos = el.selectionStart;
+    if (route().name !== 'collection') history.replaceState(null, '', '#/collection');
+    else S.noAnim = true;
+    render();
     const n = $('[data-cf="q"]'); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
   }
   if (el.dataset.sf !== undefined) { S.sets.filter = el.value; renderSetGrid(); }
@@ -2139,6 +2155,7 @@ if (EBAY.isExt) document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && !M) chrome.runtime.sendMessage({ type: 'vetrina-check-update' }).catch(() => {});
 });
 
+matchMedia('(max-width: 760px)').addEventListener('change', () => render());
 window.addEventListener('hashchange', () => { if (M) closeModal(); render(); window.scrollTo(0, 0); });
 let rzT; window.addEventListener('resize', () => { clearTimeout(rzT); rzT = setTimeout(() => { if (route().name === 'dashboard' && !M) render(); }, 200); });
 
@@ -2168,7 +2185,6 @@ if (EBAY.isExt) chrome.runtime.onMessage.addListener((msg, sender) => {
   if (DRIVE.connected() && DRIVE.everSynced()) await DRIVE.sync();
   S.rates = await API.getRates().catch(() => S.rates);
   render();
-  await refreshPrices(false);
-  refreshSealedEbay(false).then(() => refreshGradedEbay(false));
+  // prezzi: niente aggiornamenti automatici, solo con il pulsante «Scansiona prezzi»
   fillHas1st();
 })();

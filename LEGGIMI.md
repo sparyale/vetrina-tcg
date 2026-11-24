@@ -51,7 +51,19 @@ Nell'estensione: **Impostazioni → Esporta backup**. Nella versione web: **Impo
 - **Venduti eBay e minimo Cardmarket per lingua** non si leggono in automatico (il browser lo vieta alle pagine web):
   i pulsanti aprono la ricerca in una nuova scheda e il prezzo lo scrivi tu (oppure scegli *Cardmarket – tendenza* come fonte).
 - Restano automatici i prezzi Cardmarket di TCGdex (tendenza, medie) e TCGplayer, le immagini e i cambi valuta.
-- L'estensione Chrome continua a funzionare come prima sul PC, con i suoi dati separati.
+- **Un solo posto per tutto**: usa il sito anche da Chrome sul PC (`https://sparyale.github.io/vetrina-tcg/`).
+  L'estensione Chrome non serve più: dopo aver esportato il backup puoi rimuoverla da `chrome://extensions`.
+
+### Prezzi: solo con «Scansiona prezzi»
+L'app **non aggiorna più i prezzi da sola** (né all'apertura né in background): niente ricerche automatiche che i siti bloccano.
+Quando vuoi, premi **Scansiona prezzi** (in alto sul PC, in cima alla *Collezione* sul telefono):
+scarica i prezzi Cardmarket di tutte le carte da TCGdex. Accanto al totale vedi la data dell'ultima scansione («prezzi del …»).
+I prezzi eBay e i minimi Cardmarket per lingua restano manuali: apri il link dalla scheda della carta e scrivi il prezzo.
+
+### Sul telefono: ricerca rapida nella collezione
+Su iPhone l'app si apre sulla **Collezione** e la barra in alto **cerca tra le carte che hai** (nome, espansione, numero, note):
+i risultati compaiono mentre scrivi, comprese le carte dentro i master set completi.
+Per aggiungere carte nuove usa la scheda **Aggiungi** in basso.
 
 ## Funzioni
 
