@@ -189,8 +189,8 @@ l'etichetta «Doppione». Il totale della collezione conta comunque tutte le cop
 ## Classic Collection nella ricerca eBay
 
 Le carte della **Classic Collection** (30° anniversario e Celebrations) sono ristampe di carte famose: la ricerca
-eBay usa la sigla del set originale e il numero della carta originale, più la lingua e «classic collection», es.
-`Charizard BS 4 ita classic collection`. Sigle e numeri sono nella tabella `CLASSIC_ORIG` di `app.js`.
+eBay usa il numero della ristampa (sigla e numero della carta originale) e il nome del set, es.
+`Charizard 30C BS 4 Collezione Classica del 30`. Sigle e numeri sono nella tabella `CLASSIC_ORIG` di `app.js`.
 
 Per non confondere ristampa e originale:
 - per le carte Classic Collection contano solo gli annunci con «classic» nel titolo; per tutte le altre carte
@@ -203,12 +203,20 @@ Per non confondere ristampa e originale:
   prezzo lo spiega il suggerimento sul prezzo.
 - Le mediane salvate con i filtri vecchi si ricalcolano da sole (`EBAY_FV`).
 
-## Lingua nella ricerca eBay
+## Come è composta la ricerca eBay di una carta
 
-Ogni ricerca eBay (carte e prodotti sigillati) contiene sempre la lingua dell'oggetto, con una sola parola:
-`ita`, `english`, `japanese` (il gruppo di alternative tra parentesi faceva fallire la ricerca). Così i venduti di
-altre lingue non falsano la media. Le ricerche scritte a mano
-restano come le hai scritte; quelle automatiche già salvate si aggiornano da sole.
+La ricerca contiene **solo**, in quest'ordine e senza simboli (niente `/`, `-`, parentesi, apostrofi):
+1. **nome della carta**;
+2. **numero** della carta senza il totale e senza zeri davanti (`5/100` → `5`, `006` → `6`;
+   le sigle come `TG05` o `SWSH050` restano);
+3. **nome del set** nella lingua della carta (es. `Spada e Scudo`, `Base Set`, `変幻の仮面`);
+4. **versione**, solo se c'è: `prima edizione` (o `1st edition` per le carte non italiane), `unlimited`,
+   `reverse holo`, `reverse holo Poké Ball`, `stamped Pokémon Center`, `shadowless`…;
+5. per le carte gradate anche ente e voto (es. `PSA 10`).
+
+Esempi: `Charizard 4 Base Set 1st edition`, `Pikachu 25 151 reverse holo`,
+`Pikachu ex 57 Scintille Folgoranti stamped Player Rewards Program`.
+Le ricerche scritte a mano restano come le hai scritte; quelle automatiche salvate con le regole vecchie si rifanno da sole.
 
 ## 1ª edizione e Unlimited
 

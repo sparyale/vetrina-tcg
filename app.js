@@ -1639,25 +1639,35 @@ const CLASSIC_ORIG = {
   'cel25cc-CC025': 'GRI 60'
 };
 const CLASSIC_SETS = new Set(['30th-c', 'cel25cc']);
+// Ricerca eBay di una carta: SOLO nome della carta + numero (es. 5/100 → "5") + nome del set nella lingua della carta
+// + versione (prima edizione, reverse holo, stamped…) e, per le gradate, ente e voto. Nessun simbolo.
+const noSymbols = x => String(x || '').replace(/['’`´.]/g, '').replace(/[^\p{L}\p{N}\s]/gu, ' ').replace(/\s+/g, ' ').trim();
+// numero della carta senza totale e senza zeri davanti ("005" → "5"; le sigle tipo "TG05" o "SWSH050" restano)
+const cardNum = d => { const id = String(d.localId || '').split('/')[0].trim(); return /^\d+$/.test(id) ? String(parseInt(id, 10)) : id; };
+function variantWords(d) {
+  const w = [];
+  if (d.variant === 'firstEdition') w.push(d.lang === 'it' ? 'prima edizione' : '1st edition');
+  if (isUnlimited(d)) w.push('unlimited');
+  if (d.variant === 'reverse') w.push('reverse holo');
+  const f = d.finish || '';
+  if (f === 'shadowless' || f === 'shadowless1st') w.push('shadowless');
+  else if (f === 'print1999') w.push('1999 2000');
+  else if (/^stamp/.test(f)) w.push('stamped ' + finishLabel(f, d.finishLabel));
+  else if (f && d.db !== 'topsun' && d.db !== 'custom') w.push(finishLabel(f, d.finishLabel));
+  return w.join(' ');
+}
 function ebayQuery(d) {
-  const lang = ebayLang(d.lang || (d.db === 'topsun' ? 'ja' : ''));
-  const grade = d.grade && d.grade.co ? ` ${d.grade.co === 'AiGrading' ? 'AI Grading' : d.grade.co} ${d.grade.g || ''}${isBlackLabel(d) ? ' Black Label' : ''}` : '';
-  const clean = s => s.replace(/\s+/g, ' ').trim();
-  if (d.db === 'topsun') return clean(`topsun ${d.name.replace(/\s*\(Prism\)/, '')} ${d.finish === 'prism' ? 'prism' : ''} ${lang}${grade}`);
-  if (d.db === 'custom') return clean(`${(d.setName || '').replace(/\s*\(.*?\)|–/g, ' ')} ${SMART.englishName(d.name)} ${d.localId || ''} ${lang}${grade}`);
+  const grade = d.grade && d.grade.co ? `${d.grade.co === 'AiGrading' ? 'AI Grading' : d.grade.co} ${d.grade.g || ''}${isBlackLabel(d) ? ' Black Label' : ''}` : '';
+  const q = (...parts) => noSymbols(parts.filter(Boolean).join(' '));
+  if (d.db === 'topsun') return q(d.name.replace(/\s*\(Prism\)/, ''), 'Topsun', d.finish === 'prism' ? 'prism' : '', grade);
+  if (d.db === 'custom') return q(d.name, cardNum(d), (d.setName || '').replace(/\s*\(.*?\)/g, ''), variantWords(d), grade);
   if (d.db === 'cm') {
     const sn = (d.setName && d.setName !== 'Cardmarket' ? d.setName : '').replace(/\s*\(.*?\)/g, '').replace(/^Japanese Promos$/i, 'promo');
-    return clean(`${d.name.replace(/\s*[[(].*?[\])]/g, '')} ${sn} ${lang}${grade}`);
+    return q(d.name.replace(/\s*[[(].*?[\])]/g, ''), sn, variantWords(d), grade);
   }
-  const id = String(d.localId || '');
-  const off = d.official ? String(d.official).padStart(/^\d+$/.test(id) ? id.length : 0, '0') : '';
-  const classic = CLASSIC_SETS.has(d.setId);
-  const nb = classic ? CLASSIC_ORIG[d.cardId] || '' : off && /^\d+$/.test(id) ? `${id}/${off}` : id;
-  const name = d.lang === 'ja' ? SMART.englishName(d.name) : d.name;
-  if (classic) return clean(`${name} ${nb} ${lang} classic collection${grade}`);
-  // versioni che valgono molto di più (o di meno) della normale: vanno nella ricerca
-  const ver = `${d.variant === 'firstEdition' ? ' 1st edition' : ''}${isUnlimited(d) ? ' unlimited' : ''}${d.finish === 'shadowless' ? ' shadowless' : ''}${d.finish === 'print1999' ? ' 1999-2000' : ''}`;
-  return clean(`${name} ${nb}${ver} ${lang}${grade}`);
+  // Classic Collection: il numero è quello della carta ristampata (es. "30C SSH 138")
+  const num = CLASSIC_SETS.has(d.setId) ? classicNum(d) || cardNum(d) : cardNum(d);
+  return q(d.name, num, (d.setName || '').replace(/Collzione/g, 'Collezione'), variantWords(d), grade); // (refuso di TCGdex nel nome italiano)
 }
 // La ricerca salvata vale solo se l'hai scritta tu; altrimenti si rigenera (es. dopo aver cambiato il voto).
 function legacyEbayQuery(d) {
@@ -1669,13 +1679,15 @@ function legacyEbayQuery(d) {
 // - Classic Collection senza la sigla e il numero della carta originale (es. "N 101/101 classic collection").
 function staleAutoQuery(d, q) {
   if (/\((?:ita|english|japanese|french|german|spanish)[a-z]*,/i.test(q)) return true;
+  // regole vecchie: numero con il totale ("5/100") o la lingua in fondo
+  if (/\d\/\d/.test(q) || /\b(italiano|english|japanese|japan|giapponese|inglese)\b/i.test(q)) return true;
   const code = CLASSIC_SETS.has(d.setId) && CLASSIC_ORIG[d.cardId];
   return !!(code && !q.toLowerCase().includes(code.toLowerCase()));
 }
 function ebayQ(d) {
   const eb = d.ebay;
   if (!eb || !eb.query) return ebayQuery(d);
-  if (staleAutoQuery(d, eb.query)) return ebayQuery(d);
+  if (eb.custom !== true && staleAutoQuery(d, eb.query)) return ebayQuery(d);
   const custom = eb.custom != null ? eb.custom : eb.query !== legacyEbayQuery(d);
   return custom ? eb.query : ebayQuery(d);
 }
