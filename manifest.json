@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "NidoCollection",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "description": "La tua collezione di carte Pokémon: prezzi Cardmarket e venduti eBay, in italiano, inglese e giapponese.",
   "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
   "action": { "default_title": "Apri NidoCollection", "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png" } },

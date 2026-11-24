@@ -790,13 +790,13 @@ function viewCollection(v, args, wish = false) {
     groups.sort((a, b) => b.value - a.value);
   }
   const groupTile = g => `<a class="tile mtile" href="#/master/${g.m.lang}/${encodeURIComponent(g.m.setId)}" title="${esc(t('masterGroup_hint'))}">
-    <div class="tile-img mset">${g.m.logo ? `<img src="${g.m.logo}.webp" alt="" loading="lazy">` : `<b>${esc(g.m.setName || g.m.setId)}</b>`}
+    <div class="tile-img mset">${masterLogoHtml(g.m) || `<b>${esc(g.m.setName || g.m.setId)}</b>`}
       <div class="badges"><span class="b">${LANG_BADGE[g.m.lang] || g.m.lang}</span><span class="b gold">🏆 Master set</span></div></div>
     <div class="tile-body"><div class="tile-name">${esc(g.m.setName || g.m.setId)}</div>
       <div class="tile-sub">${t('masterGroup_sub').replace('{n}', g.cards)}</div>
       <div class="tile-price">${money(g.value)}</div></div></a>`;
   const groupRow = g => `<tr data-act="open-mgroup" data-k="${esc(g.k)}">
-    <td class="thumb">${g.m.logo ? `<img src="${g.m.logo}.webp" alt="">` : '🏆'}</td>
+    <td class="thumb">${masterLogoHtml(g.m) || '🏆'}</td>
     <td><b>${esc(g.m.setName || g.m.setId)}</b> <span class="chip tiny gold">🏆 Master set</span></td>
     <td>${t('masterGroup_sub').replace('{n}', g.cards)}</td><td>${LANG_BADGE[g.m.lang]}</td><td>NM</td>
     <td class="r">${g.cards}</td><td class="r">—</td><td class="r">—</td><td class="r"><b>${money(g.value)}</b></td>
@@ -833,6 +833,7 @@ function viewCollection(v, args, wish = false) {
       </tr>`; }).join('')}</tbody></table></div>` :
     `<div class="grid">${groups.map(groupTile).join('')}${list.map(i => itemTile(i, wish)).join('')}</div>`}
   ${!list.length && !groups.length ? `<p class="muted center">${t('noResults')}</p>` : ''}`;
+  if (groups.length) fillMasterLogos();
 }
 const viewWishlist = (v, a) => viewCollection(v, a, true);
 
@@ -1113,7 +1114,7 @@ function viewMaster(v, args) {
     const st = m.stats || {};
     const p = st.total ? st.owned / st.total : 0;
     return `<a class="panel master-card" href="#/master/${m.lang}/${encodeURIComponent(m.setId)}">
-      <div class="mc-logo">${m.logo ? `<img src="${m.logo}.webp" alt="">` : `<b>${esc(m.setName || m.setId)}</b>`}</div>
+      <div class="mc-logo">${masterLogoHtml(m) || `<b>${esc(m.setName || m.setId)}</b>`}</div>
       <div class="mc-info">
         <div class="mc-name">${esc(m.setName || m.setId)} <span class="chip tiny">${LANG_BADGE[m.lang]}</span></div>
         <div class="prog"><i style="width:${p * 100}%"></i></div>
@@ -1121,6 +1122,7 @@ function viewMaster(v, args) {
           ${st.total ? `<span>${t('ms_value')}: <b>${st.est != null ? money(st.est) : '—'}</b></span>` : ''}</div>
       </div></a>`;
   }).join('')}</div>` : (!S.masterPick ? `<div class="empty">${icon('master')}<h2>${t('master_empty')}</h2><p>${t('master_hint')}</p></div>` : '')}`;
+  fillMasterLogos();
   if (S.masterPick) {
     API.getSets(lang).then(list => { S.sets.list = list; S.sets.lang = lang; renderSetGrid('master'); })
       .catch(() => { const g = $('#setGrid'); if (g) g.innerHTML = `<p class="err">${t('offline')}</p>`; });
@@ -1183,7 +1185,7 @@ async function viewMasterSet(v, lang, setId) {
   v.innerHTML = `
   <a class="back" href="#/master">← ${t('nav_master')}</a>
   <div class="set-hero">
-    ${set.logo ? `<img class="set-hero-logo" src="${set.logo}.webp" alt="">` : ''}
+    ${set.logo ? `<img class="set-hero-logo" src="${set.logo}.webp" alt="">` : (() => { const mm = S.masters.find(x => x.lang === lang && x.setId === setId); return mm && mm.logoWeb ? WEBIMG.img(mm.logoWeb, 'set-hero-logo') : ''; })()}
     <div class="set-hero-info"><h1>${esc(set.name)} <span class="chip tiny">${LANG_BADGE[lang]}</span></h1>
       <div class="sub">${t('nav_master')} · ${slots.length} ${t('master_slots')} · ${new Set(slots.map(s => s.card.id)).size} ${t('cardsIn')}</div>
       <div class="prog big"><i style="width:${owned.length / (slots.length || 1) * 100}%"></i></div>
@@ -1228,6 +1230,52 @@ function slotDraft(s) {
 }
 
 // ---------- SEALED ----------
+// ---------- immagini dal web (Bulbapedia): logo dei master set e foto del sigillato ----------
+const WEB_RETRY = 30 * 864e5; // se non trova niente riprova dopo 30 giorni
+const masterLogoHtml = m => m.logo ? `<img src="${m.logo}.webp" alt="" loading="lazy">` : m.logoWeb ? WEBIMG.img(m.logoWeb) : '';
+const sealedImgHtml = p => p.photo ? `<img src="${p.photo}" alt="">` : p.webPhoto ? WEBIMG.img(p.webPhoto) : p.setLogo ? `<img class="logo" src="${p.setLogo}.webp" alt="">` : p.webLogo ? WEBIMG.img(p.webLogo, 'logo') : icon('sealed');
+const sealedWebKey = p => [p.type, p.setId || p.name, p.lang].join('|');
+let fillingLogos = false, fillingPhotos = false;
+async function fillMasterLogos() {
+  const todo = S.masters.filter(m => !m.logo && !m.logoWeb && !(m.logoTry && Date.now() - m.logoTry < WEB_RETRY));
+  if (fillingLogos || !todo.length) return;
+  fillingLogos = true;
+  let en = null; try { en = await API.setsMap('en'); } catch { /* offline */ }
+  let changed = false;
+  for (const m of todo) {
+    const e = en && en.get(m.setId);
+    // prima il logo inglese di TCGdex (stesso set), poi Bulbapedia
+    const url = e && e.logo && m.lang !== 'ja' ? e.logo + '.webp'
+      : await WEBIMG.setLogo({ lang: m.lang, name: m.setName || m.setId, enName: e && e.name, setId: m.setId }).catch(() => null);
+    m.logoTry = Date.now();
+    if (url) { m.logoWeb = url; changed = true; }
+  }
+  fillingLogos = false; saveAuto();
+  if (changed && !M && ['master', 'collection'].includes(route().name)) render();
+}
+async function fillSealedPhotos() {
+  const todo = S.sealed.filter(p => !p.photo && p.type !== 'other' &&
+    (p.webKey !== sealedWebKey(p) ? true : !p.webPick && !p.webPhoto && !(p.webTry && Date.now() - p.webTry < WEB_RETRY)));
+  if (fillingPhotos || !todo.length) return;
+  fillingPhotos = true;
+  let en = null; try { en = await API.setsMap('en'); } catch { /* offline */ }
+  let changed = false;
+  for (const p of todo) {
+    const e = en && p.setId ? en.get(p.setId) : null;
+    const url = await WEBIMG.product({ lang: p.lang, type: p.type, name: p.setName || p.name, enName: e && e.name, setId: p.setId }).catch(() => null);
+    p.webTry = Date.now(); p.webKey = sealedWebKey(p); p.webPick = false;
+    if (url !== (p.webPhoto || null)) { p.webPhoto = url || ''; changed = true; }
+    // nessuna foto del prodotto: almeno il logo del set
+    if (!url && p.setId && !p.setLogo && !p.webLogo) {
+      p.webLogo = e && e.logo && p.lang !== 'ja' ? e.logo + '.webp'
+        : await WEBIMG.setLogo({ lang: p.lang, name: p.setName || p.setId, enName: e && e.name, setId: p.setId }).catch(() => null) || '';
+      if (p.webLogo) changed = true;
+    }
+  }
+  fillingPhotos = false; saveAuto();
+  if (changed && !M && route().name === 'sealed') render();
+}
+
 const SEALED_TYPES = ['booster_box', 'half_box', 'etb', 'pc_etb', 'booster_bundle', 'upc', 'premium', 'collection', 'tin', 'mini_tin', 'blister3', 'blister1', 'booster', 'build_battle', 'other'];
 const SEALED_KW = { booster_box: { it: 'display', def: 'booster box' }, half_box: { def: 'booster box 18' }, etb: { def: 'elite trainer box' }, pc_etb: { def: 'pokemon center elite trainer box' },
   booster_bundle: { def: 'booster bundle' }, upc: { def: 'ultra premium collection' }, premium: { def: 'premium collection' }, collection: { def: 'collection' },
@@ -1277,7 +1325,7 @@ function viewSealed(v) {
     const u = sealedUnit(p);
     const g = p.buyPrice != null && u != null ? u / p.buyPrice - 1 : null;
     return `<button class="tile" data-act="open-sealed" data-uid="${p.uid}">
-      <div class="sealed-img ${p.photo ? 'photo' : ''}">${p.photo ? `<img src="${p.photo}" alt="">` : p.setLogo ? `<img class="logo" src="${p.setLogo}.webp" alt="">` : icon('sealed')}
+      <div class="sealed-img ${p.photo || p.webPhoto ? 'photo' : ''}">${sealedImgHtml(p)}
         <div class="badges">${(p.qty || 1) > 1 ? `<span class="b qty">×${p.qty}</span>` : ''}<span class="b">${LANG_BADGE[p.lang] || p.lang}</span></div>
         <span class="stype">${esc(t('stype_' + p.type))}</span>
       </div>
@@ -1286,6 +1334,7 @@ function viewSealed(v) {
         ${p.source === 'ebay' ? `<div class="tile-sub">${p.ebay && p.ebay.count ? `eBay · ${p.ebay.count} ${t('ebaySales')}` : sealedBusy ? t('ebaySearching') : 'eBay · —'}</div>` : ''}</div>
     </button>`;
   }).join('')}</div>` : `<div class="empty">${icon('sealed')}<h2>${t('sealed_empty')}</h2><p>${t('sealed_hint')}</p></div>`}`;
+  fillSealedPhotos();
 }
 
 async function openSealed(uidv) {
@@ -1323,11 +1372,16 @@ function renderSealedModal() {
     <div class="modal" role="dialog" aria-modal="true" aria-label="${esc(d.name)}">
       <button class="iconbtn mclose" data-act="close-modal" title="${t('close')}">${icon('close')}</button>
       <div class="m-left">
-        <div class="sealed-photo">${d.photo ? `<img src="${d.photo}" alt="">` : d.setLogo ? `<img class="logo" src="${d.setLogo}.webp" alt="">` : icon('sealed')}</div>
+        <div class="sealed-photo">${sealedImgHtml(d)}</div>
         <div class="btns">
+          <button type="button" class="btn" data-act="s-webpics">${icon('search')} ${t('sealed_webPhoto')}</button>
           <label class="btn">${t('sealed_photo')}<input type="file" id="sealedPhoto" accept="image/*" hidden></label>
-          ${d.photo ? `<button type="button" class="btn ghost" data-act="s-photo-remove">${t('remove')}</button>` : ''}
+          ${d.photo || d.webPhoto ? `<button type="button" class="btn ghost" data-act="s-photo-remove">${t('remove')}</button>` : ''}
         </div>
+        ${M.webPics ? `<div class="webpics-box">${M.webPics === 'loading' ? `<div class="loading"><span class="spinner"></span></div>` : M.webPics.length ? `
+          <p class="muted small">${t('sealed_webHint')}</p>
+          <div class="webpics">${M.webPics.map(x => `<button type="button" class="webpic ${d.webPhoto === x.url ? 'on' : ''}" data-act="s-webpick" data-u="${esc(x.url)}" title="${esc(x.title)}">${WEBIMG.img(x.url)}</button>`).join('')}</div>` : `<p class="muted small">${t('sealed_webNone')}</p>`}
+          <a class="link" href="https://www.cardmarket.com/${S.settings.uiLang === 'ja' ? 'en' : S.settings.uiLang}/Pokemon/Products/Search?searchString=${encodeURIComponent(cmSealedQuery(d))}" target="_blank" rel="noopener">${t('sealed_webCm')} ${icon('ext', 'sm')}</a></div>` : ''}
       </div>
       <div class="m-right">
         <div class="m-head"><h2>${esc(d.name || t('sealed_add'))}</h2>
@@ -2024,7 +2078,15 @@ document.addEventListener('click', async e => {
       M.cmRes = null; renderSealedModal(); break;
     }
     case 's-cm-unlink': readSealedForm(); Object.assign(M.draft, { cmId: null, cmName: '', cm: null }); if (M.draft.source === 'cm') M.draft.source = 'ebay'; renderSealedModal(); break;
-    case 's-photo-remove': readSealedForm(); M.draft.photo = ''; renderSealedModal(); break;
+    case 's-photo-remove': readSealedForm(); M.draft.photo = ''; M.draft.webPhoto = ''; M.draft.webPick = true; M.draft.webKey = sealedWebKey(M.draft); renderSealedModal(); break;
+    case 's-webpics': {
+      readSealedForm(); M.webPics = 'loading'; renderSealedModal();
+      const d = M.draft, en = M.enSets && d.setId ? M.enSets.get(d.setId) : null;
+      WEBIMG.productCandidates({ lang: d.lang, type: d.type, name: d.setName || d.name, enName: en && en.name, setId: d.setId })
+        .then(l => { if (M && M.kind === 'sealed' && M.draft === d) { M.webPics = l.slice(0, 12); renderSealedModal(); } });
+      break;
+    }
+    case 's-webpick': readSealedForm(); M.draft.photo = ''; M.draft.webPhoto = a.dataset.u; M.draft.webPick = true; M.draft.webKey = sealedWebKey(M.draft); M.webPics = null; renderSealedModal(); break;
     case 's-add': case 's-save': {
       readSealedForm();
       const d = { ...M.draft };

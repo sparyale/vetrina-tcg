@@ -378,6 +378,7 @@ button.chip { cursor: pointer; }
 .tile:hover .sealed-img { transform: translateY(-4px); }
 .sealed-img img, .sealed-photo img { width: 100%; height: 100%; object-fit: cover; }
 .sealed-img img.logo, .sealed-photo img.logo { object-fit: contain; width: 78%; height: 60%; filter: drop-shadow(0 6px 14px rgba(0,0,0,.45)); }
+.sealed-img img[referrerpolicy], .sealed-photo img[referrerpolicy] { object-fit: contain; padding: 6%; }
 .sealed-img > .ic, .sealed-photo > .ic { width: 64px; height: 64px; color: var(--ink3); }
 .stype { position: absolute; left: 8px; bottom: 8px; font-size: 11px; font-weight: 700; background: rgba(10,12,20,.78); color: #fff; padding: 3px 8px; border-radius: 7px; }
 .m-left .btns { margin: 0; }
@@ -388,6 +389,13 @@ button.chip { cursor: pointer; }
 .toast.out { opacity: 0; transform: translateY(8px); }
 
 .tabbar { display: none; }
+/* foto dal web per il sigillato */
+.webpics-box { margin-top: 12px; display: grid; gap: 8px; }
+.webpics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.webpic { border: 2px solid var(--line); background: var(--panel2); border-radius: 10px; padding: 4px; aspect-ratio: 1; cursor: pointer; display: grid; place-items: center; overflow: hidden; }
+.webpic img { max-width: 100%; max-height: 100%; object-fit: contain; display: block; }
+.webpic:hover { border-color: var(--line2); }
+.webpic.on { border-color: var(--accent); }
 .mobile-only { display: none !important; }
 .mob-only { display: none !important; }
 .scanbtn { flex: none; }

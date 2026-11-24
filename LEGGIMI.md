@@ -62,6 +62,15 @@ Quando vuoi, premi **Scansiona prezzi** (in alto sul PC, in cima alla *Collezion
 scarica i prezzi Cardmarket di tutte le carte da TCGdex. Accanto al totale vedi la data dell'ultima scansione («prezzi del …»).
 I prezzi eBay e i minimi Cardmarket per lingua restano manuali: apri il link dalla scheda della carta e scrivi il prezzo.
 
+### Loghi dei master set e foto del sigillato
+- **Master set**: se TCGdex non ha il logo del set nella tua lingua, l'app usa quello inglese di TCGdex
+  oppure lo cerca nell'archivio immagini di **Bulbapedia** (per i set giapponesi il logo JP).
+- **Sigillato** (ETB, display, bundle, collezioni, tin…): l'app cerca da sola la foto del prodotto su Bulbapedia,
+  solo dello stesso set; se non la trova mostra il logo del set.
+  Nella scheda del prodotto, **Foto dal web** mostra le foto trovate: tocca quella giusta.
+  In fondo c'è il link per cercarla su **Cardmarket**; puoi anche usare **Carica foto** con una tua foto.
+- Le ricerche si fanno una sola volta per prodotto (se non trova niente riprova dopo 30 giorni o se cambi tipo/set).
+
 ### Sul telefono: ricerca rapida nella collezione
 Su iPhone l'app si apre sulla **Collezione** e la barra in alto **cerca tra le carte che hai** (nome, espansione, numero, note):
 i risultati compaiono mentre scrivi, comprese le carte dentro i master set completi.

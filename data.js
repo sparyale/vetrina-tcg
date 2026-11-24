@@ -901,3 +901,84 @@ const EBAY = (() => {
 
   return { isExt, url, sold, autoExcluded, autoExcludedSealed, stats, median };
 })();
+
+// ---------- immagini dal web: loghi dei set e foto dei prodotti sigillati ----------
+// Fonte: archivio immagini di Bulbapedia (archives.bulbagarden.net), interrogabile dalle pagine web.
+// Le immagini vanno caricate senza "referrer" (attributo referrerpolicy="no-referrer"), altrimenti il sito le blocca.
+const WEBIMG = (() => {
+  const API_URL = 'https://archives.bulbagarden.net/w/api.php';
+  const mem = new Map();
+  async function search(q, width = 480) {
+    const key = q + '|' + width;
+    if (mem.has(key)) return mem.get(key);
+    const u = `${API_URL}?action=query&generator=search&gsrnamespace=6&gsrlimit=20&prop=imageinfo&iiprop=url&iiurlwidth=${width}&format=json&origin=*&gsrsearch=${encodeURIComponent(q)}`;
+    const p = fetch(u).then(r => r.ok ? r.json() : null).then(j => Object.values((j && j.query && j.query.pages) || {})
+      .sort((a, b) => a.index - b.index)
+      .map(x => ({ title: x.title.replace(/^File:/, ''), url: x.imageinfo && x.imageinfo[0] && (x.imageinfo[0].thumburl || x.imageinfo[0].url) }))
+      .filter(x => x.url && /\.(png|jpe?g|webp)$/i.test(x.title)))
+      .catch(() => { mem.delete(key); return []; });
+    mem.set(key, p);
+    return p;
+  }
+  const norm = s => s.toLowerCase().replace(/[_\-–]+/g, ' ').replace(/é/g, 'e');
+  // parola (o frase) intera: "tin" non deve trovare "Tinkatuff"
+  const has = (title, w) => new RegExp('(^|[^a-z0-9])' + norm(w).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '([^a-z0-9]|$)').test(norm(title));
+  const OTHER_LANGS = ['indonesian', 'thai', 'korean', 'chinese', 'taiwan', 'german', 'french', 'spanish', 'portuguese'];
+
+  async function setLogo({ lang, name, enName, setId }) {
+    const qs = lang === 'ja' ? [`${setId} Logo JP`, `${name} logo`] : [`${enName || name} logo`, `${setId} Logo EN`];
+    const tag = lang === 'ja' ? ' jp' : ' en';
+    for (const q of qs) {
+      const list = (await search(q, 400)).filter(x => has(x.title, 'logo') && !OTHER_LANGS.some(l => has(x.title, l)));
+      const best = list.find(x => norm(x.title).includes(tag + '.')) || list.find(x => !/ (en|jp)\./.test(norm(x.title)));
+      if (best) return best.url;
+    }
+    return null;
+  }
+
+  // foto del prodotto sigillato: ogni gruppo di "must" vuole almeno una delle parole; "avoid" le esclude
+  const NOT = ['contents', 'coin', 'logo', 'card'];
+  const PRODUCT = {
+    etb: { q: 'Elite Trainer Box', must: [['elite trainer box', 'etb']], avoid: ['center', 'pc'] },
+    pc_etb: { q: 'Pokémon Center Elite Trainer Box', must: [['elite trainer box', 'etb'], ['center', 'pc']], avoid: [] },
+    booster_box: { q: 'Booster Display Box', must: [['booster display', 'display box', 'booster box']], avoid: ['half', 'bundle', 'mini'] },
+    half_box: { q: 'Booster Box', must: [['booster box', 'half booster', 'display box']], avoid: ['bundle'] },
+    booster_bundle: { q: 'Booster Bundle', must: [['booster bundle']], avoid: [] },
+    upc: { q: 'Ultra-Premium Collection', must: [['ultra premium', 'upc']], avoid: [] },
+    premium: { q: 'Premium Collection', must: [['premium collection']], avoid: ['ultra'] },
+    collection: { q: 'Collection', must: [['collection', 'box']], avoid: ['elite', 'etb', 'display', 'bundle'] },
+    tin: { q: 'Tin', must: [['tin']], avoid: ['mini'] },
+    mini_tin: { q: 'Mini Tin', must: [['mini tin']], avoid: [] },
+    blister3: { q: 'Three-Booster Blister', must: [['blister', '3 pack', 'three booster']], avoid: [] },
+    blister1: { q: 'Blister', must: [['blister', 'checklane']], avoid: ['three', '3 pack'] },
+    booster: { q: 'Booster pack', must: [['booster']], avoid: ['box', 'bundle', 'blister', 'display'] },
+    build_battle: { q: 'Build & Battle', must: [['build']], avoid: [] }
+  };
+  const fits = (x, spec) => spec.must.every(g => g.some(w => has(x.title, w))) && !spec.avoid.concat(NOT).some(w => has(x.title, w)) && !OTHER_LANGS.some(l => has(x.title, l));
+  const code = x => norm(x.title).split(' ')[0];
+  // tutte le foto trovate (per la scelta a mano), le più adatte prima
+  async function productCandidates({ lang, type, name, enName, setId }) {
+    const spec = PRODUCT[type];
+    const base = lang === 'ja' ? (setId || name) : (enName || name);
+    const qs = spec ? [`${base} ${spec.q}`] : [];
+    qs.push(base);
+    const seen = new Set(), out = [];
+    for (const q of qs) for (const x of await search(q, 480)) if (!seen.has(x.url)) { seen.add(x.url); out.push(x); }
+    // il primo risultato indica il codice del set su Bulbapedia (es. "SV2", "151", "ME1"): i file con lo stesso codice vengono prima
+    const main = out.length ? code(out[0]) : '';
+    const score = x => (spec && fits(x, spec) ? 0 : 2) + (code(x) === main ? 0 : 1) + (NOT.some(w => has(x.title, w)) ? 2 : 0);
+    return out.map((x, i) => ({ ...x, i })).sort((a, b) => score(a) - score(b) || a.i - b.i);
+  }
+  async function product(o) {
+    const spec = PRODUCT[o.type];
+    if (!spec) return null;
+    const list = await productCandidates(o);
+    const main = list.length ? code(list.slice().sort((a, b) => a.i - b.i)[0]) : '';
+    // solo foto dello stesso set (stesso codice del primo risultato): meglio nessuna foto che quella di un altro set
+    const best = list.find(x => fits(x, spec) && code(x) === main);
+    return best ? best.url : null;
+  }
+  // tag <img> per queste immagini (senza referrer)
+  const img = (url, cls = '') => `<img ${cls ? `class="${cls}" ` : ''}src="${url}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+  return { search, setLogo, product, productCandidates, img };
+})();
