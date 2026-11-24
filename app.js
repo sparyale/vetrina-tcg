@@ -588,7 +588,8 @@ function slabHtml(i, inner) {
 }
 
 function cardImg(base, fb, q = 'low', cls = '') {
-  if (base) return `<img class="${cls}" loading="lazy" src="${img(base, q)}" alt="">`;
+  // data-card: se l'immagine salvata non si carica, l'app cerca quella di ripiego (vedi gestore 'error')
+  if (base) return `<img class="${cls}" loading="lazy" src="${img(base, q)}" alt="" ${fb ? `data-card="${esc(fb)}"` : ''}>`;
   return `<img class="${cls}" loading="lazy" alt="" ${fb ? `data-fb="${esc(fb)}"` : ''}>`;
 }
 
@@ -2289,7 +2290,18 @@ document.addEventListener('input', e => {
 
 // immagine non caricata: mostra il segnaposto
 document.addEventListener('error', e => {
-  if (e.target.tagName === 'IMG') { e.target.classList.add('broken'); const p = e.target.closest('.tile-img, .mini-img, .holo'); if (p) p.classList.add('ph'); }
+  const el = e.target;
+  if (el.tagName !== 'IMG') return;
+  el.classList.add('broken'); const p = el.closest('.tile-img, .mini-img, .holo'); if (p) p.classList.add('ph');
+  // immagine salvata che non funziona più (es. dati arrivati da un altro dispositivo): prova quella di ripiego
+  if (el.dataset.card && !el.dataset.retried) {
+    el.dataset.retried = '1';
+    const [lang, setId, localId] = el.dataset.card.split('|');
+    API.fallbackImage(lang, setId, localId).then(base => {
+      const u = base && img(base);
+      if (u && u !== el.src) { el.classList.remove('broken'); if (p) p.classList.remove('ph'); el.src = u; }
+    }).catch(() => {});
+  }
 }, true);
 
 // quando torni sulla scheda dell'app, l'estensione controlla subito se c'è una versione nuova nella cartella
